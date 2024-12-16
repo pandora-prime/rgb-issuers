@@ -105,7 +105,7 @@ fn api() -> Api {
             vname!("transfer") => 1,
         },
         errors: tiny_bmap! {
-            0 => tiny_s!("sum of inputs is not equal to sum of outputs")
+            u256::ZERO => tiny_s!("sum of inputs is not equal to sum of outputs")
         },
     })
 }
@@ -118,7 +118,7 @@ fn main() {
     // Creating DAO with three participants
     let issuer = Schema::new(codex, api, [scripts::success()], types.type_system());
     issuer
-        .save("../compiled/NonInflatableAsset.schema")
+        .save("../compiled/NonInflatableAsset.issuer")
         .expect("unable to save issuer to a file");
 
 }
