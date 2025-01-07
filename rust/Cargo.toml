@@ -12,11 +12,9 @@ path = "src/nia.rs"
 [dependencies]
 amplify = "~4.8.0"
 strict_types = "~2.8.1"
-aluvm = "0.12.0-beta.3"
-hypersonic = "0.12.0-beta.1"
-rgb-interfaces = "0.12.0-beta.1"
+aluvm = "0.12.0-beta.4"
+hypersonic = "0.12.0-beta.4"
+rgb-interfaces = "0.12.0-beta.4"
 
 [patch.crates-io]
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic" }
-hypersonic = { git = "https://github.com/AluVM/sonic" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
