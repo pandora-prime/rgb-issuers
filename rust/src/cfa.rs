@@ -73,12 +73,6 @@ fn api() -> Api {
                 published: true,
                 adaptor: EmbeddedImmutable(u256::ZERO),
             },
-            vname!("ticker") => AppendApi {
-                sem_id: types.get("RGBContract.Ticker"),
-                raw_sem_id: SemId::unit(),
-                published: true,
-                adaptor: EmbeddedImmutable(u256::ONE),
-            },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
@@ -90,6 +84,12 @@ fn api() -> Api {
                 raw_sem_id: SemId::unit(),
                 published: true,
                 adaptor: EmbeddedImmutable(u256::from(3u8)),
+            },
+            vname!("details") => AppendApi {
+                sem_id: SemId::unit(),
+                raw_sem_id: types.get("RGBContract.Details"),
+                published: true,
+                adaptor: EmbeddedImmutable(u256::from(4u8)),
             },
         },
         destructible: tiny_bmap! {
