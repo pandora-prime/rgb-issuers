@@ -39,7 +39,7 @@ fn codex() -> Codex {
     let lib = scripts::success();
     let lib_id = lib.lib_id();
     Codex {
-        name: tiny_s!("NonInflatableAsset"),
+        name: tiny_s!("CollectibleFungibleAsset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -118,7 +118,7 @@ fn main() {
     // Creating DAO with three participants
     let issuer = Schema::new(codex, api, [scripts::success()], types.type_system());
     issuer
-        .save("compiled/NonInflatableAsset.issuer")
+        .save("compiled/CollectibleFungibleAsset.issuer")
         .expect("unable to save issuer to a file");
 
 }

@@ -7,6 +7,10 @@ edition = "2021"
 name = "nia"
 path = "src/nia.rs"
 
+[[bin]]
+name = "cfa"
+path = "src/cfa.rs"
+
 [lib]
 
 [dependencies]
