@@ -27,7 +27,7 @@ extern crate strict_types;
 
 use aluvm::{CoreConfig, LibSite};
 use amplify::num::u256;
-use hypersonic::{Api, ApiInner, AppendApi, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
+use hypersonic::{Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use ifaces::CommonTypes;
 use strict_types::SemId;
@@ -66,6 +66,9 @@ fn api() -> Api {
         timestamp: 1732529307,
         name: None,
         developer: Identity::from(PANDORA),
+        conforms: Some(tn!("RGB25")),
+        default_call: Some(CallState::with("transfer", "owned")),
+        reserved: default!(),
         append_only: tiny_bmap! {
             vname!("name") => AppendApi {
                 sem_id: types.get("RGBContract.AssetName"),
