@@ -21,8 +21,8 @@ hypersonic = "0.12.0-beta.4"
 rgb-interfaces = "0.12.0-beta.4"
 
 [patch.crates-io]
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic" }
-hypersonic = { git = "https://github.com/AluVM/sonic" }
-sonic-api = { git = "https://github.com/AluVM/sonic" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "refactor/consensus" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
