@@ -49,7 +49,7 @@ fn codex() -> Codex {
         verifiers: tiny_bmap! {
             0 => LibSite::new(lib_id, 0),
             1 => LibSite::new(lib_id, 0),
-            2 => LibSite::new(lib_id, 0),
+            0xFF => LibSite::new(lib_id, 0),
         },
         reserved: default!(),
     }
@@ -106,6 +106,7 @@ fn api() -> Api {
         verifiers: tiny_bmap! {
             vname!("issue") => 0,
             vname!("transfer") => 1,
+            vname!("_") => 0xFF,
         },
         errors: tiny_bmap! {
             u256::ZERO => tiny_s!("sum of inputs is not equal to sum of outputs")
