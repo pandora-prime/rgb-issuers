@@ -25,9 +25,9 @@ extern crate amplify;
 #[macro_use]
 extern crate strict_types;
 
-use zkaluvm::alu::{CoreConfig, LibSite};
+use zkaluvm::alu::{CoreConfig, Lib, LibSite};
 use amplify::num::u256;
-use hypersonic::{Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
+use hypersonic::{uasm, Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use ifaces::CommonTypes;
 use strict_types::SemId;
@@ -35,8 +35,74 @@ use schemata::scripts;
 
 const PANDORA: &str = "dns:pandoraprime.ch";
 
+pub const OWNED_VALUE: u256 = u256::ZERO;
+
+pub fn scripts() -> Lib {
+    let code = uasm! {
+        // MAIN VALIDATION PROC
+        // Set initial values
+        mov     E1, :OWNED_VALUE ;// Set E1 to the field element representing owned value
+        mov     E2, 0            ;// E2 will contain sum of inputs
+        mov     E3, 0            ;// E3 will contain sum of outputs
+        // Verify owned state
+        call    0x0010           ;// Compute sum of inputs
+        call    0x0020           ;// Compute sum of outputs
+        eq      E1, E2           ;// check that the sum of inputs equals sum of outputs
+        chk     CO               ;// fail if not
+        // Verify that no global state is assigned
+        nxto    :immutable       ;// Try to iterate over global state
+        not     CO               ;// Invert result (we need NO state as a Success)
+        chk     CO               ;// Fail if there is a global state
+        
+        // PROC 1: SUM INPUTS
+        // Start iterations:
+        nxti    :readonce;
+        
+        // Finish if no more elements are present
+        jif     CO, +1;
+        ret;
+        
+        ldi     :readonce       ;// load next state value 
+        eq      EA, E1          ;// do we have a correct state type?
+        chk     CO              ;// fail if not
+        
+        test    EC              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        
+        fits    EB, 8:bits      ;// ensure the value fits in 8 bits
+        add     E2, EB          ;// add input to input accumulator
+        fits    E2, 8:bits      ;// ensure we do not overflow
+        jmp     0x0010          ;// loop
+        
+        // PROC 2: SUM OUTPUTS
+        // Start iterations:
+        nxto    :readonce;
+        
+        // Finish if no more elements are present
+        jif     CO, +1;
+        ret;
+        
+        ldo     :readonce       ;// load next state value 
+        eq      EA, E1          ;// do we have a correct state type?
+        chk     CO              ;// fail if not
+        
+        test    EC              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        
+        fits    EB, 8:bits      ;// ensure the value fits in 8 bits
+        add     E2, EB          ;// add input to input accumulator
+        fits    E2, 8:bits      ;// ensure we do not overflow
+        jmp     0x0020          ;// loop
+    };
+    Lib::assemble(&code).unwrap()
+}
+
 fn codex() -> Codex {
-    let lib = scripts::success();
+    let lib = scripts();
     let lib_id = lib.lib_id();
     Codex {
         name: tiny_s!("NonInflatableAsset"),
@@ -47,7 +113,7 @@ fn codex() -> Codex {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => LibSite::new(lib_id, 0),
+            0 => LibSite::new(lib_id, 0), // TODO: Write a custom script
             1 => LibSite::new(lib_id, 0),
             0xFF => LibSite::new(lib_id, 0),
         },
@@ -99,7 +165,7 @@ fn api() -> Api {
             vname!("owned") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(u256::ZERO),
+                adaptor: EmbeddedImmutable(OWNED_VALUE),
             }
         },
         readers: empty!(),
