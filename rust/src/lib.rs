@@ -20,4 +20,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+#[cfg(not(feature = "std"))]
+compile_error!("feature std must be used");
+
 pub mod scripts;

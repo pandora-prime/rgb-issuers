@@ -25,7 +25,7 @@ extern crate amplify;
 #[macro_use]
 extern crate strict_types;
 
-use aluvm::{CoreConfig, LibSite};
+use zkaluvm::alu::{CoreConfig, LibSite};
 use amplify::num::u256;
 use hypersonic::{Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};

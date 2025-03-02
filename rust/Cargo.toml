@@ -15,14 +15,17 @@ path = "src/cfa.rs"
 
 [dependencies]
 amplify = "~4.8.0"
-strict_types = "~2.8.1"
-aluvm = "0.12.0-beta.4"
-hypersonic = "0.12.0-beta.4"
-rgb-interfaces = "0.12.0-beta.4"
+strict_types = "~2.8.2"
+zk-aluvm = { version = "0.12.0-beta.5", features = ["std"] }
+hypersonic = { version = "0.12.0-beta.5", features = ["std"] }
+rgb-interfaces = "0.12.0-beta.5"
+
+[features]
+default = ["std"]
+all = ["std"]
+std = [] # must-use feature
 
 [patch.crates-io]
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "refactor/consensus" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "refactor/consensus" }
-rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
+aluvm = { git = "https://github.com/AluVM/aluvm", branch = "master" }
+zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }

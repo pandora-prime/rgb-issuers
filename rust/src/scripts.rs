@@ -20,11 +20,20 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use aluvm::{aluasm, Lib};
+use hypersonic::uasm;
+use zkaluvm::alu::{Lib};
+use zkaluvm::zk_aluasm;
+
+pub fn fungible() -> Lib {
+    let code = uasm! {
+        stop;
+    };
+    Lib::assemble(&code).unwrap()
+}
 
 pub fn success() -> Lib {
-    let code = aluasm! {
-            stop;
-        };
+    let code = zk_aluasm! {
+        stop;
+    };
     Lib::assemble(&code).unwrap()
 }
