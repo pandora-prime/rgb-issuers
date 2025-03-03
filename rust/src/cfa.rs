@@ -34,6 +34,7 @@ use hypersonic::{
 use ifaces::CommonTypes;
 use issuers::scripts::{SUB_FUNGIBLE_ISSUE_RGB25, SUB_FUNGIBLE_TRANSFER};
 use issuers::{scripts, GLOBAL_ASSET_NAME, OWNED_VALUE};
+use std::env::current_dir;
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 
@@ -120,13 +121,17 @@ fn api(codex_id: CodexId) -> Api {
 }
 
 fn main() {
+    let mut schema_path = current_dir().expect("Failed to get current directory");
+    schema_path.pop();
+
     let types = CommonTypes::new();
     let (codex, lib) = codex();
     let api = api(codex.codex_id());
 
-    // Creating DAO with three participants
+    schema_path.push("compiled/CollectibleFungibleAsset.issuer");
+
     let issuer = Schema::new(codex, api, [lib], types.type_system());
     issuer
-        .save("compiled/CollectibleFungibleAsset.issuer")
+        .save(schema_path)
         .expect("unable to save issuer to a file");
 }

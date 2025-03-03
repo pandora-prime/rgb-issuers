@@ -46,22 +46,22 @@ pub fn fungible() -> CompiledLib {
 
     let mut code = uasm! {
     // .routine SUB_FUNGIBLE_ISSUE_RGB20
-        nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, :GLOBAL_TICKER      ;// Set EF to field element representing global ticker
-        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+        nop                                 ;// Marks start of routine / entry point / goto target
+        mov     EF, :GLOBAL_TICKER          ;// Set EF to field element representing global ticker
+        jmp     :SUB_FUNGIBLE_GENESIS       ;// Pass to the generic genesis validation routine
 
     // .routine SUB_FUNGIBLE_ISSUE_RGB25
-        nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, 4           ;// Set EF to field element representing global details
-        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+        nop                                 ;// Marks start of routine / entry point / goto target
+        mov     EF, 4                       ;// Set EF to field element representing global details
+        jmp     :SUB_FUNGIBLE_GENESIS       ;// Pass to the generic genesis validation routine
 
     // .routine SUB_FUNGIBLE_GENESIS
         nop                     ;// Marks start of routine / entry point / goto target
         // Set initial values
         mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global asset name)
-        mov     EG, 2           ;// Set EF to field element representing global precision
-        mov     EH, 3           ;// Set EF to field element representing global circulation
-        mov     E2, 0           ;// E3 will contain sum of outputs
+        mov     EG, 2           ;// Set EG to field element representing global precision
+        mov     EH, 3           ;// Set EH to field element representing global circulation
+        mov     E2, 0           ;// E2 will contain sum of outputs
         // Validate verbose globals
         ldo     :immutable      ;// Read first global state - name
         chk     CO              ;// It must exist
