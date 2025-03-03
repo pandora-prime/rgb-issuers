@@ -25,13 +25,15 @@ extern crate amplify;
 #[macro_use]
 extern crate strict_types;
 
-use zkaluvm::alu::{CoreConfig, LibSite};
 use amplify::num::u256;
-use hypersonic::{Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP};
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
+use hypersonic::{
+    Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP,
+};
 use ifaces::CommonTypes;
+use issuers::{scripts, OWNED_VALUE};
 use strict_types::SemId;
-use schemata::scripts;
+use zkaluvm::alu::{CoreConfig, LibSite};
 
 const PANDORA: &str = "dns:pandoraprime.ch";
 
@@ -76,6 +78,12 @@ fn api() -> Api {
                 published: true,
                 adaptor: EmbeddedImmutable(u256::ZERO),
             },
+            vname!("details") => AppendApi {
+                sem_id: SemId::unit(),
+                raw_sem_id: types.get("RGBContract.Details"),
+                published: true,
+                adaptor: EmbeddedImmutable(u256::from(4u8)),
+            },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
@@ -86,20 +94,15 @@ fn api() -> Api {
                 sem_id: types.get("RGBContract.Amount"),
                 raw_sem_id: SemId::unit(),
                 published: true,
+                // TODO: Make this constant
                 adaptor: EmbeddedImmutable(u256::from(3u8)),
-            },
-            vname!("details") => AppendApi {
-                sem_id: SemId::unit(),
-                raw_sem_id: types.get("RGBContract.Details"),
-                published: true,
-                adaptor: EmbeddedImmutable(u256::from(4u8)),
             },
         },
         destructible: tiny_bmap! {
             vname!("owned") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(u256::ZERO),
+                adaptor: EmbeddedImmutable(OWNED_VALUE),
             }
         },
         readers: empty!(),
@@ -124,5 +127,4 @@ fn main() {
     issuer
         .save("compiled/CollectibleFungibleAsset.issuer")
         .expect("unable to save issuer to a file");
-
 }

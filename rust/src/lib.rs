@@ -20,7 +20,11 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use amplify::num::u256;
+
 #[cfg(not(feature = "std"))]
 compile_error!("feature std must be used");
 
 pub mod scripts;
+
+pub const OWNED_VALUE: u256 = u256::ZERO;

@@ -322,6 +322,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "issuers"
+version = "0.12.0-beta.5"
+dependencies = [
+ "amplify",
+ "hypersonic",
+ "rgb-interfaces",
+ "strict_types",
+ "zk-aluvm",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -435,17 +446,6 @@ name = "rustversion"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
-
-[[package]]
-name = "schemata"
-version = "0.12.0"
-dependencies = [
- "amplify",
- "hypersonic",
- "rgb-interfaces",
- "strict_types",
- "zk-aluvm",
-]
 
 [[package]]
 name = "sha2"
