@@ -38,67 +38,108 @@ const PANDORA: &str = "dns:pandoraprime.ch";
 pub const OWNED_VALUE: u256 = u256::ZERO;
 
 pub fn scripts() -> Lib {
-    let code = uasm! {
-        // MAIN VALIDATION PROC
+    let mut code = uasm! {
+        // PROC: ISSUE VALIDATION
+        nop                     ;// Marks start of routine / entry point / goto target
         // Set initial values
-        mov     E1, :OWNED_VALUE ;// Set E1 to the field element representing owned value
-        mov     E2, 0            ;// E2 will contain sum of inputs
-        mov     E3, 0            ;// E3 will contain sum of outputs
+        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global name)
+        mov     EF, 1           ;// Set EF to field element representing global ticker
+        mov     EG, 2           ;// Set EF to field element representing global precision
+        mov     EH, 3           ;// Set EF to field element representing global circulation
+        mov     E2, 0           ;// E3 will contain sum of outputs
+        // Validate verbose globals
+        ldo     :immutable      ;// Read first global state - name
+        chk     CO              ;// It must exist
+        eq      EA, EE          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        ldo     :immutable      ;// Read second global state - ticker
+        chk     CO              ;// It must exist
+        eq      EA, EF          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        ldo     :immutable      ;// Read second global state - precision
+        chk     CO              ;// It must exist
+        eq      EA, EG          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        // Validate circulating supply
+        ldo     :immutable      ;// Read second global state - circulating supply
+        chk     CO              ;// It must exist
+        eq      EA, EH          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        test    EB              ;// It must be set
+        chk     CO              ;// Or we should fail
+        mov     E1, EB          ;// Save supply
+        test    EC              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        chk     CO              ;// fail if not
+        call    0x0003          ;// Compute sum of outputs
+        eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
+        chk     CO              ;// fail if not
+        ret;
+
+        // PROC: TRANSFER VALIDATION
+        // Set initial values
+        nop                     ;// Marks start of routine / entry point / goto target
+        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value
+        mov     E1, 0           ;// E1 will contain sum of inputs
+        mov     E2, 0           ;// E2 will contain sum of outputs
         // Verify owned state
-        call    0x0010           ;// Compute sum of inputs
-        call    0x0020           ;// Compute sum of outputs
-        eq      E1, E2           ;// check that the sum of inputs equals sum of outputs
-        chk     CO               ;// fail if not
+        call    0x0002          ;// Compute sum of inputs
+        call    0x0003          ;// Compute sum of outputs
+        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
+        chk     CO              ;// fail if not
         // Verify that no global state is assigned
-        nxto    :immutable       ;// Try to iterate over global state
-        not     CO               ;// Invert result (we need NO state as a Success)
-        chk     CO               ;// Fail if there is a global state
-        
-        // PROC 1: SUM INPUTS
+        ldo     :immutable      ;// Try to iterate over global state
+        not     CO              ;// Invert result (we need NO state as a Success)
+        chk     CO              ;// Fail if there is a global state
+        ret;
+
+        // PROC: SUM INPUTS
         // Start iterations:
-        nxti    :readonce;
-        
+        nop                     ;// Marks start of routine / entry point / goto target
+
+        ldi     :destructible   ;// load next state value
         // Finish if no more elements are present
         jif     CO, +1;
         ret;
-        
-        ldi     :readonce       ;// load next state value 
-        eq      EA, E1          ;// do we have a correct state type?
+
+        eq      EA, EE          ;// do we have a correct state type?
         chk     CO              ;// fail if not
-        
+
         test    EC              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
-        
+
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
-        add     E2, EB          ;// add input to input accumulator
-        fits    E2, 8:bits      ;// ensure we do not overflow
-        jmp     0x0010          ;// loop
-        
-        // PROC 2: SUM OUTPUTS
+        add     E1, EB          ;// add input to input accumulator
+        fits    E1, 8:bits      ;// ensure we do not overflow
+        jmp     0x0002          ;// loop
+
+        // PROC: SUM OUTPUTS
         // Start iterations:
-        nxto    :readonce;
-        
+        nop                     ;// Mark the start of the routine
+        ldo     :destructible   ;// load next state value
+
         // Finish if no more elements are present
         jif     CO, +1;
         ret;
-        
-        ldo     :readonce       ;// load next state value 
-        eq      EA, E1          ;// do we have a correct state type?
+
+        eq      EA, EE          ;// do we have a correct state type?
         chk     CO              ;// fail if not
-        
+
         test    EC              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
-        
+
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
         add     E2, EB          ;// add input to input accumulator
         fits    E2, 8:bits      ;// ensure we do not overflow
-        jmp     0x0020          ;// loop
+        jmp     0x0003          ;// loop
     };
-    Lib::assemble(&code).unwrap()
+
+    Lib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
 fn codex() -> Codex {
@@ -115,7 +156,7 @@ fn codex() -> Codex {
         verifiers: tiny_bmap! {
             0 => LibSite::new(lib_id, 0), // TODO: Write a custom script
             1 => LibSite::new(lib_id, 0),
-            0xFF => LibSite::new(lib_id, 0),
+            0xFF => LibSite::new(lib_id, 0), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     }
