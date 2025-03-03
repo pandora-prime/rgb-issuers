@@ -1,4 +1,4 @@
-// SONIC schemata
+// RGB issuers
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,4 +27,6 @@ compile_error!("feature std must be used");
 
 pub mod scripts;
 
+pub const GLOBAL_ASSET_NAME: u256 = u256::ZERO;
+pub const GLOBAL_TICKER: u256 = u256::ONE;
 pub const OWNED_VALUE: u256 = u256::ZERO;

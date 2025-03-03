@@ -1,4 +1,4 @@
-// RGB schemata
+// RGB issuers
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -28,19 +28,20 @@ extern crate strict_types;
 use amplify::num::u256;
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use hypersonic::{
-    Api, ApiInner, AppendApi, CallState, Codex, DestructibleApi, Identity, Schema, FIELD_ORDER_SECP,
+    Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
+    FIELD_ORDER_SECP,
 };
 use ifaces::CommonTypes;
-use issuers::{scripts, OWNED_VALUE};
+use issuers::scripts::{SUB_FUNGIBLE_ISSUE_RGB25, SUB_FUNGIBLE_TRANSFER};
+use issuers::{scripts, GLOBAL_ASSET_NAME, OWNED_VALUE};
 use strict_types::SemId;
-use zkaluvm::alu::{CoreConfig, LibSite};
+use zkaluvm::alu::{CoreConfig, Lib};
 
 const PANDORA: &str = "dns:pandoraprime.ch";
 
-fn codex() -> Codex {
-    let lib = scripts::success();
-    let lib_id = lib.lib_id();
-    Codex {
+fn codex() -> (Codex, Lib) {
+    let lib = scripts::fungible();
+    let codex = Codex {
         name: tiny_s!("CollectibleFungibleAsset"),
         developer: Identity::from(PANDORA),
         version: default!(),
@@ -49,22 +50,21 @@ fn codex() -> Codex {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => LibSite::new(lib_id, 0),
-            1 => LibSite::new(lib_id, 0),
-            0xFF => LibSite::new(lib_id, 0),
+            0 => lib.routine(SUB_FUNGIBLE_ISSUE_RGB25),
+            1 => lib.routine(SUB_FUNGIBLE_TRANSFER),
+            0xFF => lib.routine(SUB_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
-    }
+    };
+    (codex, lib.into_lib())
 }
 
-fn api() -> Api {
+fn api(codex_id: CodexId) -> Api {
     let types = CommonTypes::new();
-
-    let codex = codex();
 
     Api::Embedded(ApiInner::<EmbeddedProc> {
         version: default!(),
-        codex_id: codex.codex_id(),
+        codex_id,
         timestamp: 1732529307,
         name: None,
         developer: Identity::from(PANDORA),
@@ -76,30 +76,32 @@ fn api() -> Api {
                 sem_id: types.get("RGBContract.AssetName"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(u256::ZERO),
+                adaptor: EmbeddedImmutable(GLOBAL_ASSET_NAME),
             },
             vname!("details") => AppendApi {
                 sem_id: SemId::unit(),
                 raw_sem_id: types.get("RGBContract.Details"),
                 published: true,
+                // TODO: Make this constant (requires amplify_num update)
                 adaptor: EmbeddedImmutable(u256::from(4u8)),
             },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
                 published: true,
+                // TODO: Make this constant (requires amplify_num update)
                 adaptor: EmbeddedImmutable(u256::from(2u8)),
             },
             vname!("circulating") => AppendApi {
                 sem_id: types.get("RGBContract.Amount"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                // TODO: Make this constant
+                // TODO: Make this constant (requires amplify_num update)
                 adaptor: EmbeddedImmutable(u256::from(3u8)),
             },
         },
         destructible: tiny_bmap! {
-            vname!("owned") => DestructibleApi {
+            vname!("value") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
                 adaptor: EmbeddedImmutable(OWNED_VALUE),
@@ -119,11 +121,11 @@ fn api() -> Api {
 
 fn main() {
     let types = CommonTypes::new();
-    let codex = codex();
-    let api = api();
+    let (codex, lib) = codex();
+    let api = api(codex.codex_id());
 
     // Creating DAO with three participants
-    let issuer = Schema::new(codex, api, [scripts::success()], types.type_system());
+    let issuer = Schema::new(codex, api, [lib], types.type_system());
     issuer
         .save("compiled/CollectibleFungibleAsset.issuer")
         .expect("unable to save issuer to a file");

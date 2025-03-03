@@ -1,4 +1,4 @@
-// SONIC schemata
+// RGB issuers
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -21,39 +21,59 @@
 // the License.
 
 use hypersonic::uasm;
-use zkaluvm::alu::Lib;
+use zkaluvm::alu::CompiledLib;
 
-use crate::OWNED_VALUE;
+use crate::{GLOBAL_ASSET_NAME, GLOBAL_TICKER, OWNED_VALUE};
 
-pub fn success() -> Lib {
-    let code = uasm! {
+pub fn success() -> CompiledLib {
+    let mut code = uasm! {
+        nop;
         stop;
     };
-    Lib::assemble(&code).unwrap()
+    CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
-pub fn fungible() -> Lib {
+pub const SUB_FUNGIBLE_ISSUE_RGB20: u16 = 0;
+pub const SUB_FUNGIBLE_ISSUE_RGB25: u16 = 1;
+pub const SUB_FUNGIBLE_TRANSFER: u16 = 3;
+
+const SUB_FUNGIBLE_GENESIS: u16 = 2;
+const SUB_FUNGIBLE_SUM_INPUTS: u16 = 4;
+const SUB_FUNGIBLE_SUM_OUTPUTS: u16 = 5;
+
+pub fn fungible() -> CompiledLib {
+    assert_eq!(OWNED_VALUE, GLOBAL_ASSET_NAME);
+
     let mut code = uasm! {
-        // PROC: ISSUE VALIDATION
+    // .routine SUB_FUNGIBLE_ISSUE_RGB20
+        nop                     ;// Marks start of routine / entry point / goto target
+        mov     EF, :GLOBAL_TICKER      ;// Set EF to field element representing global ticker
+        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+
+    // .routine SUB_FUNGIBLE_ISSUE_RGB25
+        nop                     ;// Marks start of routine / entry point / goto target
+        mov     EF, 4           ;// Set EF to field element representing global details
+        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+
+    // .routine SUB_FUNGIBLE_GENESIS
         nop                     ;// Marks start of routine / entry point / goto target
         // Set initial values
-        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global name)
-        mov     EF, 1           ;// Set EF to field element representing global ticker
+        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global asset name)
         mov     EG, 2           ;// Set EF to field element representing global precision
         mov     EH, 3           ;// Set EF to field element representing global circulation
         mov     E2, 0           ;// E3 will contain sum of outputs
         // Validate verbose globals
         ldo     :immutable      ;// Read first global state - name
         chk     CO              ;// It must exist
-        eq      EA, EE          ;// It must has correct state type
+        eq      EA, EE          ;// It must have correct state type
         chk     CO              ;// Or fail otherwise
-        ldo     :immutable      ;// Read second global state - ticker
+        ldo     :immutable      ;// Read second global state (ticker for RGB20, details for RGB25)
         chk     CO              ;// It must exist
-        eq      EA, EF          ;// It must has correct state type
+        eq      EA, EF          ;// It must have correct state type
         chk     CO              ;// Or fail otherwise
         ldo     :immutable      ;// Read second global state - precision
         chk     CO              ;// It must exist
-        eq      EA, EG          ;// It must has correct state type
+        eq      EA, EG          ;// It must have correct state type
         chk     CO              ;// Or fail otherwise
         // Validate circulating supply
         ldo     :immutable      ;// Read second global state - circulating supply
@@ -67,20 +87,20 @@ pub fn fungible() -> Lib {
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
-        call    0x0003          ;// Compute sum of outputs
+        call    :SUB_FUNGIBLE_SUM_OUTPUTS   ;// Compute sum of outputs
         eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
         chk     CO              ;// fail if not
         ret;
 
-        // PROC: TRANSFER VALIDATION
+    // .routine SUB_FUNGIBLE_TRANSFER
         // Set initial values
         nop                     ;// Marks start of routine / entry point / goto target
         mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value
         mov     E1, 0           ;// E1 will contain sum of inputs
         mov     E2, 0           ;// E2 will contain sum of outputs
         // Verify owned state
-        call    0x0002          ;// Compute sum of inputs
-        call    0x0003          ;// Compute sum of outputs
+        call    :SUB_FUNGIBLE_SUM_INPUTS    ;// Compute sum of inputs
+        call    :SUB_FUNGIBLE_SUM_OUTPUTS   ;// Compute sum of outputs
         eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
         chk     CO              ;// fail if not
         // Verify that no global state is assigned
@@ -89,7 +109,7 @@ pub fn fungible() -> Lib {
         chk     CO              ;// Fail if there is a global state
         ret;
 
-        // PROC: SUM INPUTS
+    // .routine SUB_FUNGIBLE_SUM_INPUTS
         // Start iterations:
         nop                     ;// Marks start of routine / entry point / goto target
 
@@ -109,9 +129,9 @@ pub fn fungible() -> Lib {
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
         add     E1, EB          ;// add input to input accumulator
         fits    E1, 8:bits      ;// ensure we do not overflow
-        jmp     0x0002          ;// loop
+        jmp     :SUB_FUNGIBLE_SUM_INPUTS    ;// loop
 
-        // PROC: SUM OUTPUTS
+    // .routine SUB_FUNGIBLE_SUM_OUTPUTS
         // Start iterations:
         nop                     ;// Mark the start of the routine
         ldo     :destructible   ;// load next state value
@@ -131,8 +151,8 @@ pub fn fungible() -> Lib {
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
         add     E2, EB          ;// add input to input accumulator
         fits    E2, 8:bits      ;// ensure we do not overflow
-        jmp     0x0003          ;// loop
+        jmp     :SUB_FUNGIBLE_SUM_OUTPUTS   ;// loop
     };
 
-    Lib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
+    CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
