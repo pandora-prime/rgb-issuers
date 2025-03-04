@@ -33,3 +33,5 @@ std = [] # must-use feature
 aluvm = { git = "https://github.com/AluVM/aluvm", branch = "master" }
 zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
 ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }

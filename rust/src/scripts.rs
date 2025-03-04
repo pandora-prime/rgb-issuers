@@ -23,7 +23,10 @@
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
-use crate::{GLOBAL_ASSET_NAME, GLOBAL_TICKER, OWNED_VALUE};
+use crate::{
+    GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, GLOBAL_TICKER,
+    OWNED_VALUE,
+};
 
 pub fn success() -> CompiledLib {
     let mut code = uasm! {
@@ -32,6 +35,8 @@ pub fn success() -> CompiledLib {
     };
     CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
+
+pub const FUNGIBLE_LIB_ID: &str = "";
 
 pub const SUB_FUNGIBLE_ISSUE_RGB20: u16 = 0;
 pub const SUB_FUNGIBLE_ISSUE_RGB25: u16 = 1;
@@ -46,21 +51,21 @@ pub fn fungible() -> CompiledLib {
 
     let mut code = uasm! {
     // .routine SUB_FUNGIBLE_ISSUE_RGB20
-        nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, :GLOBAL_TICKER      ;// Set EF to field element representing global ticker
-        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+        nop                               ;// Marks start of routine / entry point / goto target
+        mov     EF, :GLOBAL_TICKER        ;// Set EF to field element representing global ticker
+        jmp     :SUB_FUNGIBLE_GENESIS     ;// Pass to the generic genesis validation routine
 
     // .routine SUB_FUNGIBLE_ISSUE_RGB25
-        nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, 4           ;// Set EF to field element representing global details
-        jmp     :SUB_FUNGIBLE_GENESIS   ;// Pass to the generic genesis validation routine
+        nop                               ;// Marks start of routine / entry point / goto target
+        mov     EF, :GLOBAL_ASSET_DETAILS ;// Set EF to field element representing global details
+        jmp     :SUB_FUNGIBLE_GENESIS     ;// Pass to the generic genesis validation routine
 
     // .routine SUB_FUNGIBLE_GENESIS
         nop                     ;// Marks start of routine / entry point / goto target
         // Set initial values
         mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global asset name)
-        mov     EG, 2           ;// Set EF to field element representing global precision
-        mov     EH, 3           ;// Set EF to field element representing global circulation
+        mov     EG, :GLOBAL_PRECISION      ;// Set EF to field element representing global precision
+        mov     EH, :GLOBAL_SUPPLY         ;// Set EF to field element representing global circulation
         mov     E2, 0           ;// E3 will contain sum of outputs
         // Validate verbose globals
         ldo     :immutable      ;// Read first global state - name
@@ -84,8 +89,10 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;// Or we should fail
         mov     E1, EB          ;// Save supply
         test    EC              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
         chk     CO              ;// fail if not
         call    :SUB_FUNGIBLE_SUM_OUTPUTS   ;// Compute sum of outputs
         eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
@@ -115,7 +122,8 @@ pub fn fungible() -> CompiledLib {
 
         ldi     :destructible   ;// load next state value
         // Finish if no more elements are present
-        jif     CO, +1;
+        not     CO;
+        jif     CO, +3;
         ret;
 
         eq      EA, EE          ;// do we have a correct state type?
@@ -123,8 +131,10 @@ pub fn fungible() -> CompiledLib {
 
         test    EC              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
+        not     CO;
         test    ED              ;// ensure other field elements are empty
         chk     CO              ;// fail if not
+        not     CO;
 
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
         add     E1, EB          ;// add input to input accumulator
@@ -137,15 +147,18 @@ pub fn fungible() -> CompiledLib {
         ldo     :destructible   ;// load next state value
 
         // Finish if no more elements are present
-        jif     CO, +1;
+        not     CO;
+        jif     CO, +3;
         ret;
 
         eq      EA, EE          ;// do we have a correct state type?
         chk     CO              ;// fail if not
 
         test    EC              ;// ensure other field elements are empty
+        not     CO;
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
+        not     CO;
         chk     CO              ;// fail if not
 
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
@@ -160,32 +173,62 @@ pub fn fungible() -> CompiledLib {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hypersonic::{Instr, VmContext, FIELD_ORDER_STARK};
-    use zkaluvm::alu::{CoreConfig, LibId, Vm};
+    use amplify::default;
+    use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
+    use strict_types::StrictDumb;
+    use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
 
     const CONFIG: CoreConfig = CoreConfig {
         halt: true,
-        complexity_lim: None,
+        complexity_lim: Some(180_000_000),
     };
+
+    fn harness() -> (CompiledLib, Vm<Instr<LibId>>, impl Fn(LibId) -> Option<Lib>) {
+        let vm = Vm::<Instr<LibId>>::with(CONFIG, default!());
+        fn resolver(id: LibId) -> Option<Lib> {
+            let lib = fungible();
+            assert_eq!(id, lib.as_lib().lib_id());
+            Some(lib.into_lib())
+        }
+        (fungible(), vm, resolver)
+    }
 
     #[test]
     fn empty_genesis() {
-        let lib = fungible();
-        let lib_id = lib.as_lib().lib_id();
         let context = VmContext {
             read_once_input: &[],
             immutable_input: &[],
             read_once_output: &[],
             immutable_output: &[],
         };
-        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, FIELD_ORDER_STARK);
-        let resolver = |id: LibId| {
-            assert_eq!(id, lib_id);
-            Some(lib.as_lib())
-        };
+        let (lib, mut vm, resolver) = harness();
         let res = vm
             .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
             .is_ok();
         assert!(!res);
+    }
+
+    #[test]
+    fn correct_genesis() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::new(OWNED_VALUE, 1000_u64),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
+            .is_ok();
+        assert!(res);
     }
 }

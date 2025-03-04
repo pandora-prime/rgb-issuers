@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "aluvm"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/aluvm?branch=master#87a610af811e256efe62049b9c69b6f53b062a55"
+source = "git+https://github.com/AluVM/aluvm?branch=master#749fd4f2993bc12b6a34c8cdee0b3d9e040eac68"
 dependencies = [
  "amplify",
  "baid64",
@@ -273,8 +273,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "hypersonic"
 version = "0.12.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ff7fb4bbaf9505d983d2420e9cbf24f8ca6c31d279088e89f24f5fb0962d339"
+source = "git+https://github.com/AluVM/sonic?branch=master#d1ebec0f5fea14d26b4d385e28c1b1a94e04d6b3"
 dependencies = [
  "aluvm",
  "amplify",
@@ -467,8 +466,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "sonic-api"
 version = "0.12.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db823d4491e1c34d181aea39add0aab27e5b01155511b1703ecea84087e58cb4"
+source = "git+https://github.com/AluVM/sonic?branch=master#d1ebec0f5fea14d26b4d385e28c1b1a94e04d6b3"
 dependencies = [
  "aluvm",
  "amplify",
@@ -486,8 +484,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-beta.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "823ab4d115d02997bb3a81868c2d94f4cc163a96d5d940eb29db3970c50112d7"
+source = "git+https://github.com/AluVM/sonic?branch=master#d1ebec0f5fea14d26b4d385e28c1b1a94e04d6b3"
 dependencies = [
  "amplify",
  "baid64",
@@ -569,7 +566,7 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/ultrasonic?branch=master#81907baf8edf2baff9e727dcda24eade42e3a377"
+source = "git+https://github.com/AluVM/ultrasonic?branch=master#43641742a888117e5147c305587e151f616a99e0"
 dependencies = [
  "amplify",
  "baid64",
@@ -748,7 +745,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "zk-aluvm"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/zk-aluvm?branch=master#3d6c3b347ade3b5c8eede621c7cbbe49be50722a"
+source = "git+https://github.com/AluVM/zk-aluvm?branch=master#9718e870ec8a766b46a768d65c0ed2ea580280ec"
 dependencies = [
  "aluvm",
  "amplify",

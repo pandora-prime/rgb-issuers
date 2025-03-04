@@ -29,13 +29,15 @@ use amplify::num::u256;
 use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
-    FIELD_ORDER_SECP,
 };
 use ifaces::CommonTypes;
 use issuers::scripts::{SUB_FUNGIBLE_ISSUE_RGB25, SUB_FUNGIBLE_TRANSFER};
-use issuers::{scripts, GLOBAL_ASSET_NAME, OWNED_VALUE};
+use issuers::{
+    scripts, GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, OWNED_VALUE,
+};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
+use zkaluvm::FIELD_ORDER_SECP;
 
 const PANDORA: &str = "dns:pandoraprime.ch";
 
@@ -82,22 +84,19 @@ fn api(codex_id: CodexId) -> Api {
                 sem_id: SemId::unit(),
                 raw_sem_id: types.get("RGBContract.Details"),
                 published: true,
-                // TODO: Make this constant (requires amplify_num update)
-                adaptor: EmbeddedImmutable(u256::from(4u8)),
+                adaptor: EmbeddedImmutable(GLOBAL_ASSET_DETAILS),
             },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                // TODO: Make this constant (requires amplify_num update)
-                adaptor: EmbeddedImmutable(u256::from(2u8)),
+                adaptor: EmbeddedImmutable(GLOBAL_PRECISION),
             },
             vname!("circulating") => AppendApi {
                 sem_id: types.get("RGBContract.Amount"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                // TODO: Make this constant (requires amplify_num update)
-                adaptor: EmbeddedImmutable(u256::from(3u8)),
+                adaptor: EmbeddedImmutable(GLOBAL_SUPPLY),
             },
         },
         destructible: tiny_bmap! {
