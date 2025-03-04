@@ -130,11 +130,11 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;// fail if not
 
         test    EC              ;// ensure other field elements are empty
-        chk     CO              ;// fail if not
         not     CO;
+        chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
-        chk     CO              ;// fail if not
         not     CO;
+        chk     CO              ;// fail if not
 
         fits    EB, 8:bits      ;// ensure the value fits in 8 bits
         add     E1, EB          ;// add input to input accumulator
@@ -322,5 +322,54 @@ mod tests {
             .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
             .is_ok();
         assert!(res);
+    }
+
+    #[test]
+    fn transfer_correct() {
+        let inputs = [
+            &[StateValue::new(OWNED_VALUE, 1000_u64)][..],
+            &[
+                StateValue::new(OWNED_VALUE, 100_u64),
+                StateValue::new(OWNED_VALUE, 900_u64),
+            ],
+        ];
+        let inputs = inputs.into_iter();
+        let lock = None;
+        let auth = AuthToken::strict_dumb();
+        let outputs = [
+            &[StateCell {
+                data: StateValue::new(OWNED_VALUE, 1000_u64),
+                auth,
+                lock,
+            }][..],
+            &[
+                StateCell {
+                    data: StateValue::new(OWNED_VALUE, 600_u64),
+                    auth,
+                    lock,
+                },
+                StateCell {
+                    data: StateValue::new(OWNED_VALUE, 400_u64),
+                    auth,
+                    lock,
+                },
+            ],
+        ];
+        let outputs = outputs.into_iter();
+        let mut context = VmContext {
+            read_once_input: &[StateValue::new(OWNED_VALUE, 1000_u64)],
+            immutable_input: &[],
+            read_once_output: &[],
+            immutable_output: &[],
+        };
+        for (input, output) in inputs.flat_map(|inp| outputs.clone().map(move |out| (inp, out))) {
+            let (lib, mut vm, resolver) = harness();
+            context.read_once_input = input;
+            context.read_once_output = output;
+            let res = vm
+                .exec(lib.routine(SUB_FUNGIBLE_TRANSFER), &context, resolver)
+                .is_ok();
+            assert!(res);
+        }
     }
 }
