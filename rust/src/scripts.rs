@@ -173,10 +173,10 @@ pub fn fungible() -> CompiledLib {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use amplify::default;
     use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
     use strict_types::StrictDumb;
     use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
+    use zkaluvm::{GfaConfig, FIELD_ORDER_SECP};
 
     const CONFIG: CoreConfig = CoreConfig {
         halt: true,
@@ -184,7 +184,12 @@ mod tests {
     };
 
     fn harness() -> (CompiledLib, Vm<Instr<LibId>>, impl Fn(LibId) -> Option<Lib>) {
-        let vm = Vm::<Instr<LibId>>::with(CONFIG, default!());
+        let vm = Vm::<Instr<LibId>>::with(
+            CONFIG,
+            GfaConfig {
+                field_order: FIELD_ORDER_SECP,
+            },
+        );
         fn resolver(id: LibId) -> Option<Lib> {
             let lib = fungible();
             assert_eq!(id, lib.as_lib().lib_id());
@@ -373,6 +378,11 @@ mod tests {
     #[test]
     fn transfer_inflation() {
         transfer_harness(&[&[999], &[101, 900]], &[&[1000], &[100, 900]], false);
+    }
+
+    #[test]
+    fn transfer_overflow() {
+        transfer_harness(&[&[1]], &[&[u64::MAX - 1, 2]], false);
     }
 
     #[test]
