@@ -324,52 +324,59 @@ mod tests {
         assert!(res);
     }
 
-    #[test]
-    fn transfer_correct() {
-        let inputs = [
-            &[StateValue::new(OWNED_VALUE, 1000_u64)][..],
-            &[
-                StateValue::new(OWNED_VALUE, 100_u64),
-                StateValue::new(OWNED_VALUE, 900_u64),
-            ],
-        ];
-        let inputs = inputs.into_iter();
+    fn transfer_harness(inp: &[&[u64]], out: &[&[u64]], should_success: bool) {
+        let inputs = inp.into_iter().map(|vals| {
+            vals.into_iter()
+                .map(|val| StateValue::new(OWNED_VALUE, *val))
+                .collect::<Vec<_>>()
+        });
         let lock = None;
         let auth = AuthToken::strict_dumb();
-        let outputs = [
-            &[StateCell {
-                data: StateValue::new(OWNED_VALUE, 1000_u64),
-                auth,
-                lock,
-            }][..],
-            &[
-                StateCell {
-                    data: StateValue::new(OWNED_VALUE, 600_u64),
+        let outputs = out.into_iter().map(|vals| {
+            vals.into_iter()
+                .map(|val| StateCell {
+                    data: StateValue::new(OWNED_VALUE, *val),
                     auth,
                     lock,
-                },
-                StateCell {
-                    data: StateValue::new(OWNED_VALUE, 400_u64),
-                    auth,
-                    lock,
-                },
-            ],
-        ];
-        let outputs = outputs.into_iter();
-        let mut context = VmContext {
-            read_once_input: &[StateValue::new(OWNED_VALUE, 1000_u64)],
-            immutable_input: &[],
-            read_once_output: &[],
-            immutable_output: &[],
-        };
-        for (input, output) in inputs.flat_map(|inp| outputs.clone().map(move |out| (inp, out))) {
+                })
+                .collect::<Vec<_>>()
+        });
+        for (input, output) in inputs.flat_map(|inp| {
+            outputs
+                .clone()
+                .into_iter()
+                .map(move |out| (inp.clone(), out))
+        }) {
             let (lib, mut vm, resolver) = harness();
-            context.read_once_input = input;
-            context.read_once_output = output;
+            let context = VmContext {
+                read_once_input: input.as_slice(),
+                immutable_input: &[],
+                read_once_output: output.as_slice(),
+                immutable_output: &[],
+            };
             let res = vm
                 .exec(lib.routine(SUB_FUNGIBLE_TRANSFER), &context, resolver)
                 .is_ok();
-            assert!(res);
+            if should_success {
+                assert!(res);
+            } else {
+                assert!(!res);
+            }
         }
+    }
+
+    #[test]
+    fn transfer_deflation() {
+        transfer_harness(&[&[1001], &[99, 900]], &[&[1000], &[100, 900]], false);
+    }
+
+    #[test]
+    fn transfer_inflation() {
+        transfer_harness(&[&[999], &[101, 900]], &[&[1000], &[100, 900]], false);
+    }
+
+    #[test]
+    fn transfer_correct() {
+        transfer_harness(&[&[1000], &[100, 900]], &[&[1000], &[100, 900]], true);
     }
 }
