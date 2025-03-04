@@ -21,6 +21,9 @@ zk-aluvm = { version = "0.12.0-beta.5", features = ["std"] }
 hypersonic = { version = "0.12.0-beta.5", features = ["std"] }
 rgb-interfaces = "0.12.0-beta.5"
 
+[dev-dependencies]
+zk-aluvm = { version = "0.12.0-beta.5", features = ["std", "log"] }
+
 [features]
 default = ["std"]
 all = ["std"]

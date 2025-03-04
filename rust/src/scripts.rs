@@ -156,3 +156,36 @@ pub fn fungible() -> CompiledLib {
 
     CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hypersonic::{Instr, VmContext, FIELD_ORDER_STARK};
+    use zkaluvm::alu::{CoreConfig, LibId, Vm};
+
+    const CONFIG: CoreConfig = CoreConfig {
+        halt: true,
+        complexity_lim: None,
+    };
+
+    #[test]
+    fn empty_genesis() {
+        let lib = fungible();
+        let lib_id = lib.as_lib().lib_id();
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[],
+            immutable_output: &[],
+        };
+        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, FIELD_ORDER_STARK);
+        let resolver = |id: LibId| {
+            assert_eq!(id, lib_id);
+            Some(lib.as_lib())
+        };
+        let res = vm
+            .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+}

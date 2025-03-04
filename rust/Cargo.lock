@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "aluvm"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/aluvm?branch=master#b2f1596571700ff59ccfcf3b3110dca1784fcf05"
+source = "git+https://github.com/AluVM/aluvm?branch=master#87a610af811e256efe62049b9c69b6f53b062a55"
 dependencies = [
  "amplify",
  "baid64",
@@ -443,9 +443,9 @@ dependencies = [
 
 [[package]]
 name = "rustversion"
-version = "1.0.19"
+version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
+checksum = "eded382c5f5f786b989652c49544c4877d9f015cc22e145a5ea8ea66c2921cd2"
 
 [[package]]
 name = "sha2"
@@ -569,7 +569,7 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/ultrasonic?branch=master#54e5f8bf815137c0940b9cf58eb3bc6c6ada3f13"
+source = "git+https://github.com/AluVM/ultrasonic?branch=master#81907baf8edf2baff9e727dcda24eade42e3a377"
 dependencies = [
  "amplify",
  "baid64",
@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.17"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00e2473a93778eb0bad35909dff6a10d28e63f792f16ed15e404fca9d5eeedbe"
+checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 
 [[package]]
 name = "version_check"
@@ -748,7 +748,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 [[package]]
 name = "zk-aluvm"
 version = "0.12.0-beta.5"
-source = "git+https://github.com/AluVM/zk-aluvm?branch=master#2a3a4b866eb1c5365ea1aefc81e30ec1f07201d9"
+source = "git+https://github.com/AluVM/zk-aluvm?branch=master#3d6c3b347ade3b5c8eede621c7cbbe49be50722a"
 dependencies = [
  "aluvm",
  "amplify",
