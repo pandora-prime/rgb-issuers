@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_genesis() {
+    fn genesis_empty() {
         let context = VmContext {
             read_once_input: &[],
             immutable_input: &[],
@@ -209,7 +209,99 @@ mod tests {
     }
 
     #[test]
-    fn correct_genesis() {
+    fn genesis_missing_globals() {
+        let mut context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::new(OWNED_VALUE, 1000_u64),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[],
+        };
+        let globals = [
+            &[
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ][..],
+            &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ],
+            &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ],
+            &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+            ],
+            &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+            ],
+        ];
+        for global in globals {
+            context.immutable_output = global;
+            let (lib, mut vm, resolver) = harness();
+            let res = vm
+                .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
+                .is_ok();
+            assert!(!res);
+        }
+    }
+
+    #[test]
+    fn genesis_missing_owned() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[],
+            immutable_output: &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn genesis_supply_mismatch() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::new(OWNED_VALUE, 1001_u64),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[
+                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(GLOBAL_TICKER, 0u8),
+                StateData::new(GLOBAL_PRECISION, 18_u8),
+                StateData::new(GLOBAL_SUPPLY, 1000_u64),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(SUB_FUNGIBLE_ISSUE_RGB20), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn genesis_correct() {
         let context = VmContext {
             read_once_input: &[],
             immutable_input: &[],
