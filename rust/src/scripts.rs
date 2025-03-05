@@ -42,7 +42,7 @@ pub const SUB_FUNGIBLE_ISSUE_RGB20: u16 = 0;
 pub const SUB_ISSUE_RGB21: u16 = 0;
 pub const SUB_FUNGIBLE_ISSUE_RGB25: u16 = 1;
 pub const SUB_FUNGIBLE_TRANSFER: u16 = 3;
-pub const SUB_TRANSFER_RGB21: u16 = 1;
+pub const SUB_TRANSFER_RGB21: u16 = 6;
 
 const SUB_FUNGIBLE_GENESIS: u16 = 2;
 const SUB_FUNGIBLE_SUM_INPUTS: u16 = 4;
@@ -112,7 +112,7 @@ pub fn fungible() -> CompiledLib {
         call    :SUB_FUNGIBLE_SUM_OUTPUTS   ;// Compute sum of outputs
         eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
         chk     CO              ;// fail if not
-        // Verify that no global state is assigned
+        // Verify that no global state is defined
         ldo     :immutable      ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)
         chk     CO              ;// Fail if there is a global state
@@ -176,13 +176,14 @@ pub fn non_fungible() -> CompiledLib {
     assert_eq!(OWNED_VALUE, GLOBAL_ASSET_NAME);
 
     const NEXT_TOKEN: u16 = 1;
-    const NEXT_ALLOC: u16 = 2;
-    const VALID_TOKEN: u16 = 3;
-    const END_TOKENS: u16 = 3;
-    const NEXT_OWNED: u16 = 4;
-    const NEXT_GLOBAL: u16 = 5;
-    const END_TOKEN: u16 = 6;
-    const END: u16 = 7;
+    const END_TOKENS: u16 = 2;
+    const NEXT_OWNED: u16 = 3;
+    const NEXT_GLOBAL: u16 = 4;
+    const END_TOKEN: u16 = 5;
+    const LOOP_TOKEN: u16 = 7;
+    const VERIFY_TOKEN: u16 = 8;
+    const SUM_INPUTS: u16 = 9;
+    const SUM_OUTPUTS: u16 = 10;
 
     let mut code = uasm! {
     // .routine SUB_ISSUE_RGB21
@@ -214,50 +215,29 @@ pub fn non_fungible() -> CompiledLib {
         mov     E3, 0           ;// Start counter for tokens
     // .loop NEXT_TOKEN
         nop;
-        ldo     :immutable      ;// Read fourth global state - toke information
+        ldo     :immutable      ;// Read fourth global state - token information
         jif     CO, :END_TOKENS ;// Complete token validation if no more tokens left
-        eq      EA, EH          ;// It must has correct state type
-        chk     CO              ;// Or fail otherwise
-        test    EB              ;// Token id must be set
-        chk     CO              ;// Or we should fail
-        mov     E5, EB          ;// Save token id
-        test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
+        call    :VERIFY_TOKEN   ;// Do token verification
         mov     E2, 0           ;// Initialize sum of outputs
-    // .loop NEXT_ALLOC
-        nop;
-        // Iterate over allocations
-        ldo     :destructible   ;// Load token
-        jif     CO, :VALID_TOKEN;// Jump to sum validation
-        eq      EA, EE          ;// It must has correct state type
-        chk     CO              ;// Or fail otherwise
-        eq      EB, E5          ;// Do we have the correct token id?
-        jif     CO, :NEXT_ALLOC ;// Read next allocation
-        fits    ED, 8:bits      ;// ensure the value fits in 8 bits
-        add     E2, ED          ;// add supply to input accumulator
-        fits    E2, 8:bits      ;// ensure we do not overflow
-        jmp     :NEXT_ALLOC     ;// Process to the next allocation
-    // .label VALID_TOKEN
-        nop;
+        call    :SUM_OUTPUTS    ;// Sum outputs
         eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
         chk     CO              ;// fail if not
         add     E3, E8          ;// Increment token counter
         rsto    :destructible   ;// Reset state iterator
         jmp     :NEXT_TOKEN     ;// Process to the next token
-        
+
         // Validate that owned tokens match the list of issued tokens
-    // .label END_TOKENS 
+    // .label END_TOKENS
         nop;
         rsto    :destructible   ;// Reset state iterator
     // .label NEXT_OWNED
         nop;
         rsto    :immutable      ;// Reset state iterator
         ldo     :destructible   ;// Iterate over tokens
-        jif     CO, :END        ;// Complete
+        // Finish if no more elements are present
+        not     CO;
+        jif     CO, +3;
+        ret;
         mov     E4, EB          ;// Save token id
         mov     E5, 0           ;// Start counter
     // .label NEXT_GLOBAL
@@ -276,11 +256,80 @@ pub fn non_fungible() -> CompiledLib {
         chk     CO              ;// Fail otherwise
         jmp     :NEXT_OWNED     ;// Go to the next owned
 
-    // .label END
+    // .routine SUB_TRANSFER_RGB21
         nop;
+        // Verify that no global state is defined
+        ldo     :immutable      ;// Try to iterate over global state
+        not     CO              ;// Invert result (we need NO state as a Success)
+        chk     CO              ;// Fail if there is a global state
+
+        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value
+
+        // For each token verify sum of inputs equal sum of outputs
+    // .label LOOP_TOKEN
+        nop;
+        ldi     :immutable      ;// Iterate over tokens
+        not     CO;
+        jif     CO, +3;
+        ret                     ;// Finish if no more tokens
+
+        rsti    :destructible   ;// Start iteration over inputs
+        rsto    :destructible   ;// Start iteration over outputs
+        mov     E1, 0           ;// Initialize sum of outputs
+        mov     E2, 0           ;// Initialize sum of outputs
+
+        call    :SUM_INPUTS     ;// Compute sum of inputs
+        call    :SUM_OUTPUTS    ;// Compute sum of outputs
+        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
+        chk     CO              ;// fail if not
+        jmp     :LOOP_TOKEN     ;// Process to the next token
+
+    // .routine VERIFY_TOKEN
+        nop;
+        eq      EA, EH          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        test    EB              ;// Token id must be set
+        chk     CO              ;// Or we should fail
+        mov     E5, EB          ;// Save token id
+        test    EC              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
         ret;
-        
-    // TODO: Write SUB_RGB21_TRANSFER
+
+    // .routine SUM_INPUTS
+        nop;
+        // Iterate over allocations
+        ldi     :destructible   ;// Load input allocation
+        not     CO;
+        jif     CO, +3;
+        ret                     ;// Finish if no more tokens
+        eq      EA, EE          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        eq      EB, E5          ;// Do we have the correct token id?
+        jif     CO, :SUM_INPUTS;// Read next allocation
+        fits    ED, 8:bits      ;// ensure the value fits in 8 bits
+        add     E1, ED          ;// add supply to input accumulator
+        fits    E1, 8:bits      ;// ensure we do not overflow
+        jmp     :SUM_INPUTS     ;// Process to the next allocation
+
+    // .routine SUM_OUTPUTS
+        nop;
+        // Iterate over allocations
+        ldo     :destructible   ;// Load output allocation
+        not     CO;
+        jif     CO, +3;
+        ret                     ;// Finish if no more tokens
+        eq      EA, EE          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        eq      EB, E5          ;// Do we have the correct token id?
+        jif     CO, :SUM_OUTPUTS;// Read next allocation
+        fits    ED, 8:bits      ;// ensure the value fits in 8 bits
+        add     E2, ED          ;// add supply to output accumulator
+        fits    E2, 8:bits      ;// ensure we do not overflow
+        jmp     :SUM_OUTPUTS    ;// Process to the next allocation
     };
 
     CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))

@@ -42,7 +42,7 @@ use zkaluvm::FIELD_ORDER_SECP;
 const PANDORA: &str = "dns:pandoraprime.ch";
 
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::fungible();
+    let lib = scripts::non_fungible();
     let codex = Codex {
         name: tiny_s!("UniqueDigitalAsset"),
         developer: Identity::from(PANDORA),
