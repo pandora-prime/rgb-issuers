@@ -12,6 +12,10 @@ path = "src/nia.rs"
 name = "cfa"
 path = "src/cfa.rs"
 
+[[bin]]
+name = "uda"
+path = "src/uda.rs"
+
 [lib]
 
 [dependencies]
@@ -35,3 +39,4 @@ zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
 ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
 hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
 sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }

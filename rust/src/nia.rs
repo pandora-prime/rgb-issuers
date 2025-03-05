@@ -71,7 +71,7 @@ fn api(codex_id: CodexId) -> Api {
         name: None,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB20")),
-        default_call: Some(CallState::with("transfer", "owned")),
+        default_call: Some(CallState::with("transfer", "amount")),
         reserved: default!(),
         append_only: tiny_bmap! {
             vname!("name") => AppendApi {
@@ -100,7 +100,7 @@ fn api(codex_id: CodexId) -> Api {
             },
         },
         destructible: tiny_bmap! {
-            vname!("value") => DestructibleApi {
+            vname!("amount") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
                 adaptor: EmbeddedImmutable(OWNED_VALUE),

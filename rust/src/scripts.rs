@@ -39,8 +39,10 @@ pub fn success() -> CompiledLib {
 pub const FUNGIBLE_LIB_ID: &str = "";
 
 pub const SUB_FUNGIBLE_ISSUE_RGB20: u16 = 0;
+pub const SUB_ISSUE_RGB21: u16 = 0;
 pub const SUB_FUNGIBLE_ISSUE_RGB25: u16 = 1;
 pub const SUB_FUNGIBLE_TRANSFER: u16 = 3;
+pub const SUB_TRANSFER_RGB21: u16 = 1;
 
 const SUB_FUNGIBLE_GENESIS: u16 = 2;
 const SUB_FUNGIBLE_SUM_INPUTS: u16 = 4;
@@ -76,7 +78,7 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;// It must exist
         eq      EA, EF          ;// It must have correct state type
         chk     CO              ;// Or fail otherwise
-        ldo     :immutable      ;// Read second global state - precision
+        ldo     :immutable      ;// Read third global state - precision
         chk     CO              ;// It must exist
         eq      EA, EG          ;// It must have correct state type
         chk     CO              ;// Or fail otherwise
@@ -165,6 +167,120 @@ pub fn fungible() -> CompiledLib {
         add     E2, EB          ;// add input to input accumulator
         fits    E2, 8:bits      ;// ensure we do not overflow
         jmp     :SUB_FUNGIBLE_SUM_OUTPUTS   ;// loop
+    };
+
+    CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
+}
+
+pub fn non_fungible() -> CompiledLib {
+    assert_eq!(OWNED_VALUE, GLOBAL_ASSET_NAME);
+
+    const NEXT_TOKEN: u16 = 1;
+    const NEXT_ALLOC: u16 = 2;
+    const VALID_TOKEN: u16 = 3;
+    const END_TOKENS: u16 = 3;
+    const NEXT_OWNED: u16 = 4;
+    const NEXT_GLOBAL: u16 = 5;
+    const END_TOKEN: u16 = 6;
+    const END: u16 = 7;
+
+    let mut code = uasm! {
+    // .routine SUB_ISSUE_RGB21
+        nop                               ;// Marks start of routine / entry point / goto target
+        // Set initial values
+        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global asset name)
+        mov     EF, :GLOBAL_ASSET_DETAILS  ;// Set EF to field element representing global asset details
+        mov     EG, :GLOBAL_PRECISION      ;// Set EF to field element representing global fractions
+        mov     EH, :GLOBAL_SUPPLY         ;// Set EF to field element representing global tokens
+        mov     E2, 0           ;// E3 will contain sum of outputs
+        mov     E7, 0           ;// E7 will hold 0 as a constant for `eq` operation
+        mov     E8, 1           ;// E8 will hold 1 as a constant for counter increment operation
+        // Validate verbose globals
+        ldo     :immutable      ;// Read first global state - name
+        chk     CO              ;// It must exist
+        eq      EA, EE          ;// It must have correct state type
+        chk     CO              ;// Or fail otherwise
+        ldo     :immutable      ;// Read second global state (ticker for RGB20, details for RGB25)
+        chk     CO              ;// It must exist
+        eq      EA, EF          ;// It must have correct state type
+        chk     CO              ;// Or fail otherwise
+        ldo     :immutable      ;// Read third global state - precision
+        chk     CO              ;// It must exist
+        eq      EA, EG          ;// It must have correct state type
+        chk     CO              ;// Or fail otherwise
+        mov     E1, EB          ;// Save fractions value to match it against issued amounts
+
+        // Validate global tokens and issued amounts
+        mov     E3, 0           ;// Start counter for tokens
+    // .loop NEXT_TOKEN
+        nop;
+        ldo     :immutable      ;// Read fourth global state - toke information
+        jif     CO, :END_TOKENS ;// Complete token validation if no more tokens left
+        eq      EA, EH          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        test    EB              ;// Token id must be set
+        chk     CO              ;// Or we should fail
+        mov     E5, EB          ;// Save token id
+        test    EC              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        mov     E2, 0           ;// Initialize sum of outputs
+    // .loop NEXT_ALLOC
+        nop;
+        // Iterate over allocations
+        ldo     :destructible   ;// Load token
+        jif     CO, :VALID_TOKEN;// Jump to sum validation
+        eq      EA, EE          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        eq      EB, E5          ;// Do we have the correct token id?
+        jif     CO, :NEXT_ALLOC ;// Read next allocation
+        fits    ED, 8:bits      ;// ensure the value fits in 8 bits
+        add     E2, ED          ;// add supply to input accumulator
+        fits    E2, 8:bits      ;// ensure we do not overflow
+        jmp     :NEXT_ALLOC     ;// Process to the next allocation
+    // .label VALID_TOKEN
+        nop;
+        eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
+        chk     CO              ;// fail if not
+        add     E3, E8          ;// Increment token counter
+        rsto    :destructible   ;// Reset state iterator
+        jmp     :NEXT_TOKEN     ;// Process to the next token
+        
+        // Validate that owned tokens match the list of issued tokens
+    // .label END_TOKENS 
+        nop;
+        rsto    :destructible   ;// Reset state iterator
+    // .label NEXT_OWNED
+        nop;
+        rsto    :immutable      ;// Reset state iterator
+        ldo     :destructible   ;// Iterate over tokens
+        jif     CO, :END        ;// Complete
+        mov     E4, EB          ;// Save token id
+        mov     E5, 0           ;// Start counter
+    // .label NEXT_GLOBAL
+        nop;
+        ldo     :immutable      ;// Load global state
+        jif     CO, :END_TOKEN  ;// We've done
+        eq      EA, EH          ;// It must has correct state type
+        jif     CO, :NEXT_GLOBAL;// If not, goto next global state
+        eq      EB, E4          ;// Check if the token id match
+        jif     CO, :NEXT_GLOBAL;// Skip otherwise
+        add     E5, E8          ;// Increase counter
+    // .label END_TOKEN
+        nop;
+        eq      E5, E7          ;// Check that token has allocations
+        not     CO              ;// We need to invert CO so if no allocations we fail
+        chk     CO              ;// Fail otherwise
+        jmp     :NEXT_OWNED     ;// Go to the next owned
+
+    // .label END
+        nop;
+        ret;
+        
+    // TODO: Write SUB_RGB21_TRANSFER
     };
 
     CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
