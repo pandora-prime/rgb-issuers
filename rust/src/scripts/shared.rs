@@ -181,13 +181,13 @@ pub fn shared_lib() -> CompiledLib {
         chk     CO              ;// fail if not
 
         test    EE              ;// Is `EE` set to none?
-        jif     CO, +7          ;// - branch to enforce `EC` to be none as well
+        jif     CO, +9          ;// - branch to enforce `EC` to be none as well
 
         eq      EC, EE          ;// ensure EC value equals to EE
         jif     CO, :LOOP_OUTPUTS;// - read next input otherwise
-        jmp     +4              ;// process to normal flow
+        jmp     +6              ;// process to normal flow
 
-        eq      EC, EE          ;// ensure EC is not set
+        test    EC              ;// ensure EC is not set
         not     CO;
         chk     CO              ;// fail if not
 

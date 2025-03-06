@@ -24,7 +24,7 @@ use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
 use super::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
-use crate::O_AMOUNT;
+use crate::{G_SUPPLY, O_AMOUNT};
 
 pub const FN_RGB21_ISSUE: u16 = 0;
 pub const FN_RGB21_TRANSFER: u16 = 6;
@@ -50,13 +50,15 @@ pub fn non_fungible() -> CompiledLib {
 
         // Validate global tokens and issued amounts
         mov     E3, 0           ;// Start counter for tokens
+        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
+
     // .label NEXT_TOKEN
         nop;
         ldo     :immutable      ;// Read fourth global state - token information
         jif     CO, :END_TOKENS ;// Complete token validation if no more tokens left
 
         // Verify token spec
-        eq      EA, EH          ;// It must has correct state type
+        eq      EA, E7          ;// It must has correct state type
         chk     CO              ;// Or fail otherwise
         test    EB              ;// Token id must be set
         chk     CO              ;// Or we should fail
@@ -67,6 +69,7 @@ pub fn non_fungible() -> CompiledLib {
         test    ED              ;// ensure other field elements are empty
         not     CO              ;// invert CO value (we need test to fail)
         chk     CO              ;// fail if not
+        // TODO: Ensure all token ids are unique
 
         // Check issued supply
         call    shared, :FN_SUM_OUTPUTS    ;// Sum outputs
@@ -79,9 +82,6 @@ pub fn non_fungible() -> CompiledLib {
         // Validate that owned tokens match the list of issued tokens
     // .label END_TOKENS
         nop;
-        cknxo   :immutable      ;// Check there is no more global state
-        chk     CO              ;// Fail otherwise
-
         rsto    :destructible   ;// Reset state iterator
     // .label NEXT_OWNED
         nop;
@@ -91,13 +91,14 @@ pub fn non_fungible() -> CompiledLib {
         not     CO;
         jif     CO, +3;
         ret;
-        mov     E4, EB          ;// Save token id
+        mov     E4, EC          ;// Save token id
         mov     E5, 0           ;// Start counter
+        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
     // .label NEXT_GLOBAL
         nop;
         ldo     :immutable      ;// Load global state
         jif     CO, :END_TOKEN  ;// We've done
-        eq      EA, EH          ;// It must has correct state type
+        eq      EA, E7          ;// It must has correct state type
         jif     CO, :NEXT_GLOBAL;// If not, goto next global state
         eq      EB, E4          ;// Check if the token id match
         jif     CO, :NEXT_GLOBAL;// Skip otherwise
@@ -142,13 +143,15 @@ pub fn non_fungible() -> CompiledLib {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hypersonic::Instr;
+    use crate::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY};
+    use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
+    use strict_types::StrictDumb;
     use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
     use zkaluvm::{GfaConfig, FIELD_ORDER_SECP};
 
     const CONFIG: CoreConfig = CoreConfig {
         halt: true,
-        complexity_lim: Some(180_000_000),
+        complexity_lim: Some(580_000_000),
     };
 
     fn harness() -> (CompiledLib, Vm<Instr<LibId>>, impl Fn(LibId) -> Option<Lib>) {
@@ -160,9 +163,150 @@ mod tests {
         );
         fn resolver(id: LibId) -> Option<Lib> {
             let lib = non_fungible();
-            assert_eq!(id, lib.as_lib().lib_id());
-            Some(lib.into_lib())
+            let shared = shared_lib();
+            if lib.as_lib().lib_id() == id {
+                return Some(lib.into_lib());
+            }
+            if shared.as_lib().lib_id() == id {
+                return Some(shared.into_lib());
+            }
+            panic!("Unknown library: {id}");
         }
         (non_fungible(), vm, resolver)
+    }
+
+    #[test]
+    fn genesis_empty() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn genesis_missing_globals() {
+        const SUPPLY: u64 = 1000_u64;
+        let mut context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::new(O_AMOUNT, SUPPLY),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[],
+        };
+        let globals = [
+            &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_PRECISION, 18_u8),
+                StateData::new(G_SUPPLY, SUPPLY),
+            ][..],
+            &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_PRECISION, 18_u8),
+                StateData::new(G_SUPPLY, SUPPLY),
+            ],
+            &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_DETAILS, 0u8),
+                StateData::new(G_SUPPLY, SUPPLY),
+            ],
+            &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_DETAILS, 0u8),
+                StateData::new(G_PRECISION, 18_u8),
+            ],
+            &[StateData::new(G_NAME, 0u8), StateData::new(G_SUPPLY, 0u8)],
+        ];
+        for global in globals {
+            context.immutable_output = global;
+            let (lib, mut vm, resolver) = harness();
+            let res = vm
+                .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+                .is_ok();
+            assert!(!res);
+        }
+    }
+
+    #[test]
+    fn genesis_missing_owned() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[],
+            immutable_output: &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_DETAILS, 0u8),
+                StateData::new(G_PRECISION, 18_u8),
+                StateData::new(G_SUPPLY, 1000_u64),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn genesis_supply_mismatch() {
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::new(O_AMOUNT, 1001_u64),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_DETAILS, 0u8),
+                StateData::new(G_PRECISION, 18_u8),
+                StateData::new(G_SUPPLY, 1000_u64),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn genesis_correct() {
+        const TOKEN_ID: u64 = 0;
+        const SUPPLY: u64 = 1000_u64;
+        let context = VmContext {
+            read_once_input: &[],
+            immutable_input: &[],
+            read_once_output: &[StateCell {
+                data: StateValue::Triple {
+                    first: O_AMOUNT.into(),
+                    second: SUPPLY.into(),
+                    third: TOKEN_ID.into(),
+                },
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }],
+            immutable_output: &[
+                StateData::new(G_DETAILS, 0u8),
+                StateData::new(G_NAME, 0u8),
+                StateData::new(G_PRECISION, SUPPLY),
+                StateData::new(G_SUPPLY, TOKEN_ID),
+            ],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+            .is_ok();
+        assert!(res);
     }
 }
