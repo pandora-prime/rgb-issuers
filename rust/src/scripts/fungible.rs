@@ -237,8 +237,8 @@ mod tests {
                 lock: None,
             }],
             immutable_output: &[
-                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
                 StateData::new(G_SUPPLY, 1000_u64),
             ],
