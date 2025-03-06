@@ -22,22 +22,13 @@
 
 #[macro_use]
 extern crate amplify;
-#[macro_use]
-extern crate strict_types;
 
-use amplify::num::u256;
-use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
-use hypersonic::{
-    Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
-};
-use ifaces::{CommonTypes, Rgb21Types};
+use hypersonic::{Codex, Identity, Schema};
+use ifaces::CommonTypes;
 use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
-use issuers::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT};
-use strict_types::SemId;
+use issuers::PANDORA;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
-
-const PANDORA: &str = "dns:pandoraprime.ch";
 
 fn codex() -> (Codex, Lib) {
     let lib = scripts::non_fungible();
@@ -59,68 +50,10 @@ fn codex() -> (Codex, Lib) {
     (codex, lib.into_lib())
 }
 
-fn api(codex_id: CodexId) -> Api {
-    let types = Rgb21Types::new();
-
-    Api::Embedded(ApiInner::<EmbeddedProc> {
-        version: default!(),
-        codex_id,
-        timestamp: 1732529307,
-        name: None,
-        developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB21")),
-        default_call: Some(CallState::with("transfer", "fractions")),
-        reserved: default!(),
-        append_only: tiny_bmap! {
-            // NFT collection name
-            vname!("name") => AppendApi {
-                sem_id: types.get("RGBContract.AssetName"),
-                raw_sem_id: SemId::unit(),
-                published: true,
-                adaptor: EmbeddedImmutable(G_NAME),
-            },
-            vname!("details") => AppendApi {
-                sem_id: SemId::unit(),
-                raw_sem_id: types.get("RGBContract.Details"),
-                published: true,
-                adaptor: EmbeddedImmutable(G_DETAILS),
-            },
-            vname!("fractions") => AppendApi {
-                sem_id: types.get("RGB21.OwnedFraction"),
-                raw_sem_id: SemId::unit(),
-                published: true,
-                adaptor: EmbeddedImmutable(G_PRECISION),
-            },
-            vname!("token") => AppendApi {
-                sem_id: types.get("RGB21.Nft"),
-                raw_sem_id: types.get("RGB21.NftSpec"),
-                published: true,
-                adaptor: EmbeddedImmutable(G_SUPPLY),
-            },
-        },
-        destructible: tiny_bmap! {
-            vname!("fractions") => DestructibleApi {
-                sem_id: types.get("RGB21.NftAllocation"),
-                arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(O_AMOUNT),
-            }
-        },
-        readers: empty!(),
-        verifiers: tiny_bmap! {
-            vname!("issue") => 0,
-            vname!("transfer") => 1,
-            vname!("_") => 0xFF,
-        },
-        errors: tiny_bmap! {
-            u256::ZERO => tiny_s!("sum of inputs is not equal to sum of outputs")
-        },
-    })
-}
-
 fn main() {
     let types = CommonTypes::new();
     let (codex, lib) = codex();
-    let api = api(codex.codex_id());
+    let api = issuers::ifaces::rgb21::api(codex.codex_id());
 
     // Creating DAO with three participants
     let issuer = Schema::new(

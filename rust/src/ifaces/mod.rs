@@ -20,24 +20,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate amplify;
-#[macro_use]
-extern crate strict_types;
-
-#[cfg(not(feature = "std"))]
-compile_error!("feature std must be used");
-
-pub mod ifaces;
-pub mod scripts;
-
-pub const PANDORA: &str = "dns:pandoraprime.ch";
-
-use amplify::num::u256;
-
-pub const G_NAME: u256 = u256::ZERO;
-pub const G_TICKER: u256 = u256::ONE;
-pub const G_PRECISION: u256 = u256::from_inner([2, 0, 0, 0]);
-pub const G_SUPPLY: u256 = u256::from_inner([3, 0, 0, 0]);
-pub const G_DETAILS: u256 = G_TICKER;
-pub const O_AMOUNT: u256 = u256::ZERO;
+pub mod rgb20;
+pub mod rgb21;
+pub mod rgb25;
