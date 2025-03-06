@@ -6,15 +6,15 @@ publish = false
 
 [[bin]]
 name = "nia"
-path = "src/nia.rs"
-
-[[bin]]
-name = "cfa"
-path = "src/cfa.rs"
+path = "src/bin/rgb20/nia.rs"
 
 [[bin]]
 name = "uda"
-path = "src/uda.rs"
+path = "src/bin/rgb21/uda.rs"
+
+[[bin]]
+name = "cfa"
+path = "src/bin/rgb25/cfa.rs"
 
 [lib]
 

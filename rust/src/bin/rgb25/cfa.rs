@@ -31,9 +31,9 @@ use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
 use ifaces::CommonTypes;
-use issuers::scripts::{SUB_FUNGIBLE_ISSUE_RGB20, SUB_FUNGIBLE_TRANSFER};
+use issuers::scripts::{self, SUB_FUNGIBLE_ISSUE_RGB25, SUB_FUNGIBLE_TRANSFER};
 use issuers::{
-    scripts, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, GLOBAL_TICKER, OWNED_VALUE,
+    GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, OWNED_VALUE,
 };
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
@@ -44,7 +44,7 @@ const PANDORA: &str = "dns:pandoraprime.ch";
 fn codex() -> (Codex, Lib) {
     let lib = scripts::fungible();
     let codex = Codex {
-        name: tiny_s!("NonInflatableAsset"),
+        name: tiny_s!("CollectibleFungibleAsset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -52,7 +52,7 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(SUB_FUNGIBLE_ISSUE_RGB20),
+            0 => lib.routine(SUB_FUNGIBLE_ISSUE_RGB25),
             1 => lib.routine(SUB_FUNGIBLE_TRANSFER),
             0xFF => lib.routine(SUB_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
@@ -66,11 +66,11 @@ fn api(codex_id: CodexId) -> Api {
 
     Api::Embedded(ApiInner::<EmbeddedProc> {
         version: default!(),
-        codex_id: codex_id,
+        codex_id,
         timestamp: 1732529307,
         name: None,
         developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB20")),
+        conforms: Some(tn!("RGB25")),
         default_call: Some(CallState::with("transfer", "amount")),
         reserved: default!(),
         append_only: tiny_bmap! {
@@ -80,11 +80,11 @@ fn api(codex_id: CodexId) -> Api {
                 published: true,
                 adaptor: EmbeddedImmutable(GLOBAL_ASSET_NAME),
             },
-            vname!("ticker") => AppendApi {
-                sem_id: types.get("RGBContract.Ticker"),
-                raw_sem_id: SemId::unit(),
+            vname!("details") => AppendApi {
+                sem_id: SemId::unit(),
+                raw_sem_id: types.get("RGBContract.Details"),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_TICKER),
+                adaptor: EmbeddedImmutable(GLOBAL_ASSET_DETAILS),
             },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
@@ -123,8 +123,9 @@ fn main() {
     let (codex, lib) = codex();
     let api = api(codex.codex_id());
 
+    // Creating DAO with three participants
     let issuer = Schema::new(codex, api, [lib], types.type_system());
     issuer
-        .save("compiled/NonInflatableAsset.issuer")
+        .save("compiled/CollectibleFungibleAsset.issuer")
         .expect("unable to save issuer to a file");
 }

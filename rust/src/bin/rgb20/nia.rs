@@ -30,11 +30,9 @@ use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
-use ifaces::{CommonTypes, Rgb21Types};
-use issuers::scripts::{SUB_ISSUE_RGB21, SUB_TRANSFER_RGB21};
-use issuers::{
-    scripts, GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, OWNED_VALUE,
-};
+use ifaces::CommonTypes;
+use issuers::scripts::{self, SUB_FUNGIBLE_ISSUE_RGB20, SUB_FUNGIBLE_TRANSFER};
+use issuers::{GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, GLOBAL_TICKER, OWNED_VALUE};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -42,9 +40,9 @@ use zkaluvm::FIELD_ORDER_SECP;
 const PANDORA: &str = "dns:pandoraprime.ch";
 
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::non_fungible();
+    let lib = scripts::fungible();
     let codex = Codex {
-        name: tiny_s!("UniqueDigitalAsset"),
+        name: tiny_s!("NonInflatableAsset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -52,9 +50,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(SUB_ISSUE_RGB21),
-            1 => lib.routine(SUB_TRANSFER_RGB21),
-            0xFF => lib.routine(SUB_TRANSFER_RGB21), // Blank transition is just an ordinary self-transfer
+            0 => lib.routine(SUB_FUNGIBLE_ISSUE_RGB20),
+            1 => lib.routine(SUB_FUNGIBLE_TRANSFER),
+            0xFF => lib.routine(SUB_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -62,47 +60,46 @@ fn codex() -> (Codex, Lib) {
 }
 
 fn api(codex_id: CodexId) -> Api {
-    let types = Rgb21Types::new();
+    let types = CommonTypes::new();
 
     Api::Embedded(ApiInner::<EmbeddedProc> {
         version: default!(),
-        codex_id,
+        codex_id: codex_id,
         timestamp: 1732529307,
         name: None,
         developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB21")),
-        default_call: Some(CallState::with("transfer", "fractions")),
+        conforms: Some(tn!("RGB20")),
+        default_call: Some(CallState::with("transfer", "amount")),
         reserved: default!(),
         append_only: tiny_bmap! {
-            // NFT collection name
             vname!("name") => AppendApi {
                 sem_id: types.get("RGBContract.AssetName"),
                 raw_sem_id: SemId::unit(),
                 published: true,
                 adaptor: EmbeddedImmutable(GLOBAL_ASSET_NAME),
             },
-            vname!("details") => AppendApi {
-                sem_id: SemId::unit(),
-                raw_sem_id: types.get("RGBContract.Details"),
+            vname!("ticker") => AppendApi {
+                sem_id: types.get("RGBContract.Ticker"),
+                raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_ASSET_DETAILS),
+                adaptor: EmbeddedImmutable(GLOBAL_TICKER),
             },
-            vname!("fractions") => AppendApi {
-                sem_id: types.get("RGB21.OwnedFraction"),
+            vname!("precision") => AppendApi {
+                sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
                 published: true,
                 adaptor: EmbeddedImmutable(GLOBAL_PRECISION),
             },
-            vname!("token") => AppendApi {
-                sem_id: types.get("RGB21.Nft"),
-                raw_sem_id: types.get("RGB21.NftSpec"),
+            vname!("circulating") => AppendApi {
+                sem_id: types.get("RGBContract.Amount"),
+                raw_sem_id: SemId::unit(),
                 published: true,
                 adaptor: EmbeddedImmutable(GLOBAL_SUPPLY),
             },
         },
         destructible: tiny_bmap! {
-            vname!("fractions") => DestructibleApi {
-                sem_id: types.get("RGB21.NftAllocation"),
+            vname!("amount") => DestructibleApi {
+                sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
                 adaptor: EmbeddedImmutable(OWNED_VALUE),
             }
@@ -124,9 +121,8 @@ fn main() {
     let (codex, lib) = codex();
     let api = api(codex.codex_id());
 
-    // Creating DAO with three participants
     let issuer = Schema::new(codex, api, [lib], types.type_system());
     issuer
-        .save("compiled/UniqueDigitalAsset.issuer")
+        .save("compiled/NonInflatableAsset.issuer")
         .expect("unable to save issuer to a file");
 }
