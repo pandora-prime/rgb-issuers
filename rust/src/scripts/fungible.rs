@@ -20,59 +20,29 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use super::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
+use crate::G_SUPPLY;
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
-use crate::{GLOBAL_ASSET_NAME, G_DETAILS, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
-
-pub const FUNGIBLE_LIB_ID: &str = "";
-
-pub const FN_RGB20_ISSUE: u16 = 0;
-pub const FN_RGB25_ISSUE: u16 = 1;
-pub const FN_FUNGIBLE_TRANSFER: u16 = 3;
-
-pub(self) const GENESIS: u16 = 2;
-pub(self) const SUM_INPUTS: u16 = 4;
-pub(self) const SUM_OUTPUTS: u16 = 5;
+pub const FN_FUNGIBLE_ISSUE: u16 = 0;
+pub const FN_FUNGIBLE_TRANSFER: u16 = 1;
 
 pub fn fungible() -> CompiledLib {
-    assert_eq!(O_AMOUNT, GLOBAL_ASSET_NAME);
+    let shared = shared_lib().into_lib().lib_id();
 
     let mut code = uasm! {
-    // .routine SUB_FUNGIBLE_ISSUE_RGB20
+    // .routine FN_FUNGIBLE_ISSUE
         nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, :G_TICKER   ;// Set EF to field element representing global ticker
-        jmp     :GENESIS        ;// Pass to the generic genesis validation routine
+        call    shared, :FN_ASSET_SPEC   ;// Call asset check
+        fits    EB, 8:bits      ;// The precision must fit into a byte
+        chk     CO              ;// - or fail otherwise
 
-    // .routine SUB_FUNGIBLE_ISSUE_RGB25
-        nop                     ;// Marks start of routine / entry point / goto target
-        mov     EF, :G_DETAILS  ;// Set EF to field element representing global details
-        jmp     :GENESIS        ;// Pass to the generic genesis validation routine
-
-    // .routine SUB_FUNGIBLE_GENESIS
-        nop                     ;// Marks start of routine / entry point / goto target
-        // Set initial values
-        mov     EE, :O_AMOUNT   ;// Set EE to the field element representing owned value (also global asset name)
-        mov     EG, :G_PRECISION;// Set EF to field element representing global precision
-        mov     EH, :G_SUPPLY   ;// Set EF to field element representing global circulation
-        mov     E2, 0           ;// E3 will contain sum of outputs
-        // Validate verbose globals
-        ldo     :immutable      ;// Read first global state - name
-        chk     CO              ;// It must exist
-        eq      EA, EE          ;// It must have correct state type
-        chk     CO              ;// Or fail otherwise
-        ldo     :immutable      ;// Read second global state (ticker for RGB20, details for RGB25)
-        chk     CO              ;// It must exist
-        eq      EA, EF          ;// It must have correct state type
-        chk     CO              ;// Or fail otherwise
-        ldo     :immutable      ;// Read third global state - precision
-        chk     CO              ;// It must exist
-        eq      EA, EG          ;// It must have correct state type
-        chk     CO              ;// Or fail otherwise
         // Validate circulating supply
-        ldo     :immutable      ;// Read second global state - circulating supply
+        mov     E8, :G_SUPPLY   ;// Load supply type
+        ldo     :immutable      ;// Read last global state - circulating supply
         chk     CO              ;// It must exist
-        eq      EA, EH          ;// It must has correct state type
+        eq      EA, E8          ;// It must has correct state type
         chk     CO              ;// Or fail otherwise
         test    EB              ;// It must be set
         chk     CO              ;// Or we should fail
@@ -83,85 +53,44 @@ pub fn fungible() -> CompiledLib {
         test    ED              ;// ensure other field elements are empty
         not     CO              ;// invert CO value (we need test to fail)
         chk     CO              ;// fail if not
-        call    :SUM_OUTPUTS    ;// Compute sum of outputs
+        mov     E2, 0           ;// E2 will contain sum of outputs
+        clr     EE              ;// Ensure EE is set to none so we enforce third element to be empty
+        call    shared, :FN_SUM_OUTPUTS    ;// Compute sum of outputs
         eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
         chk     CO              ;// fail if not
+
+        // Check there is no more global state
+        ldo     :immutable      ;
+        not     CO              ;
+        chk     CO              ;
         ret;
 
-    // .routine SUB_FUNGIBLE_TRANSFER
-        // Set initial values
+    // .routine FN_FUNGIBLE_TRANSFER
         nop                     ;// Marks start of routine / entry point / goto target
-        mov     EE, :O_AMOUNT;// Set EE to the field element representing owned value
-        mov     E1, 0           ;// E1 will contain sum of inputs
-        mov     E2, 0           ;// E2 will contain sum of outputs
-        // Verify owned state
-        call    :SUM_INPUTS     ;// Compute sum of inputs
-        call    :SUM_OUTPUTS    ;// Compute sum of outputs
-        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
-        chk     CO              ;// fail if not
+
         // Verify that no global state is defined
         ldo     :immutable      ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)
         chk     CO              ;// Fail if there is a global state
+
+        // Verify owned state
+        clr     EE              ;// Ensure EE is set to none so we enforce third element to be empty
+        call    shared, :FN_SUM_INPUTS     ;// Compute sum of inputs
+        call    shared, :FN_SUM_OUTPUTS    ;// Compute sum of outputs
+        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
+        chk     CO              ;// fail if not
+
         ret;
-
-    // .routine SUB_FUNGIBLE_SUM_INPUTS
-        // Start iterations:
-        nop                     ;// Marks start of routine / entry point / goto target
-
-        ldi     :destructible   ;// load next state value
-        // Finish if no more elements are present
-        not     CO;
-        jif     CO, +3;
-        ret;
-
-        eq      EA, EE          ;// do we have a correct state type?
-        chk     CO              ;// fail if not
-
-        test    EC              ;// ensure other field elements are empty
-        not     CO;
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO;
-        chk     CO              ;// fail if not
-
-        fits    EB, 8:bits      ;// ensure the value fits in 8 bits
-        add     E1, EB          ;// add input to input accumulator
-        fits    E1, 8:bits      ;// ensure we do not overflow
-        jmp     :SUM_INPUTS     ;// loop
-
-    // .routine SUB_FUNGIBLE_SUM_OUTPUTS
-        // Start iterations:
-        nop                     ;// Mark the start of the routine
-        ldo     :destructible   ;// load next state value
-
-        // Finish if no more elements are present
-        not     CO;
-        jif     CO, +3;
-        ret;
-
-        eq      EA, EE          ;// do we have a correct state type?
-        chk     CO              ;// fail if not
-
-        test    EC              ;// ensure other field elements are empty
-        not     CO;
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO;
-        chk     CO              ;// fail if not
-
-        fits    EB, 8:bits      ;// ensure the value fits in 8 bits
-        add     E2, EB          ;// add input to input accumulator
-        fits    E2, 8:bits      ;// ensure we do not overflow
-        jmp     :SUM_OUTPUTS    ;// loop
     };
 
-    CompiledLib::compile(&mut code).unwrap_or_else(|err| panic!("Invalid script: {err}"))
+    CompiledLib::compile(&mut code, &[&shared_lib()])
+        .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
     use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
     use strict_types::StrictDumb;
     use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
@@ -169,7 +98,7 @@ mod tests {
 
     const CONFIG: CoreConfig = CoreConfig {
         halt: true,
-        complexity_lim: Some(180_000_000),
+        complexity_lim: Some(500_000_000),
     };
 
     fn harness() -> (CompiledLib, Vm<Instr<LibId>>, impl Fn(LibId) -> Option<Lib>) {
@@ -180,9 +109,15 @@ mod tests {
             },
         );
         fn resolver(id: LibId) -> Option<Lib> {
-            let lib = fungible();
-            assert_eq!(id, lib.as_lib().lib_id());
-            Some(lib.into_lib())
+            let fungible = fungible();
+            let shared = shared_lib();
+            if fungible.as_lib().lib_id() == id {
+                return Some(fungible.into_lib());
+            }
+            if shared.as_lib().lib_id() == id {
+                return Some(shared.into_lib());
+            }
+            panic!("Unknown library: {id}");
         }
         (fungible(), vm, resolver)
     }
@@ -197,7 +132,7 @@ mod tests {
         };
         let (lib, mut vm, resolver) = harness();
         let res = vm
-            .exec(lib.routine(FN_RGB20_ISSUE), &context, resolver)
+            .exec(lib.routine(FN_FUNGIBLE_ISSUE), &context, resolver)
             .is_ok();
         assert!(!res);
     }
@@ -221,30 +156,27 @@ mod tests {
                 StateData::new(G_SUPPLY, 1000_u64),
             ][..],
             &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
                 StateData::new(G_SUPPLY, 1000_u64),
             ],
             &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_SUPPLY, 1000_u64),
             ],
             &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
             ],
-            &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
-                StateData::new(G_TICKER, 0u8),
-            ],
+            &[StateData::new(G_NAME, 0u8), StateData::new(G_TICKER, 0u8)],
         ];
         for global in globals {
             context.immutable_output = global;
             let (lib, mut vm, resolver) = harness();
             let res = vm
-                .exec(lib.routine(FN_RGB20_ISSUE), &context, resolver)
+                .exec(lib.routine(FN_FUNGIBLE_ISSUE), &context, resolver)
                 .is_ok();
             assert!(!res);
         }
@@ -257,7 +189,7 @@ mod tests {
             immutable_input: &[],
             read_once_output: &[],
             immutable_output: &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
                 StateData::new(G_SUPPLY, 1000_u64),
@@ -265,7 +197,7 @@ mod tests {
         };
         let (lib, mut vm, resolver) = harness();
         let res = vm
-            .exec(lib.routine(FN_RGB20_ISSUE), &context, resolver)
+            .exec(lib.routine(FN_FUNGIBLE_ISSUE), &context, resolver)
             .is_ok();
         assert!(!res);
     }
@@ -281,7 +213,7 @@ mod tests {
                 lock: None,
             }],
             immutable_output: &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
                 StateData::new(G_SUPPLY, 1000_u64),
@@ -289,7 +221,7 @@ mod tests {
         };
         let (lib, mut vm, resolver) = harness();
         let res = vm
-            .exec(lib.routine(FN_RGB20_ISSUE), &context, resolver)
+            .exec(lib.routine(FN_FUNGIBLE_ISSUE), &context, resolver)
             .is_ok();
         assert!(!res);
     }
@@ -305,7 +237,7 @@ mod tests {
                 lock: None,
             }],
             immutable_output: &[
-                StateData::new(GLOBAL_ASSET_NAME, 0u8),
+                StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
                 StateData::new(G_SUPPLY, 1000_u64),
@@ -313,7 +245,7 @@ mod tests {
         };
         let (lib, mut vm, resolver) = harness();
         let res = vm
-            .exec(lib.routine(FN_RGB20_ISSUE), &context, resolver)
+            .exec(lib.routine(FN_FUNGIBLE_ISSUE), &context, resolver)
             .is_ok();
         assert!(res);
     }

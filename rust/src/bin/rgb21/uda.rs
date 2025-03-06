@@ -31,8 +31,8 @@ use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
 use ifaces::{CommonTypes, Rgb21Types};
-use issuers::scripts::{self, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
-use issuers::{GLOBAL_ASSET_NAME, G_DETAILS, G_PRECISION, G_SUPPLY, O_AMOUNT};
+use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
+use issuers::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -77,7 +77,7 @@ fn api(codex_id: CodexId) -> Api {
                 sem_id: types.get("RGBContract.AssetName"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_ASSET_NAME),
+                adaptor: EmbeddedImmutable(G_NAME),
             },
             vname!("details") => AppendApi {
                 sem_id: SemId::unit(),
@@ -123,7 +123,12 @@ fn main() {
     let api = api(codex.codex_id());
 
     // Creating DAO with three participants
-    let issuer = Schema::new(codex, api, [lib], types.type_system());
+    let issuer = Schema::new(
+        codex,
+        api,
+        [shared_lib().into_lib(), lib],
+        types.type_system(),
+    );
     issuer
         .save("compiled/UniqueDigitalAsset.issuer")
         .expect("unable to save issuer to a file");

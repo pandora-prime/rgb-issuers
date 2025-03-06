@@ -30,8 +30,8 @@ use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
 use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
-use ifaces::CommonTypes;
-use issuers::scripts::{self, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use ifaces::{CommonTypes, Rgb21Types};
+use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
 use issuers::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
@@ -40,9 +40,9 @@ use zkaluvm::FIELD_ORDER_SECP;
 const PANDORA: &str = "dns:pandoraprime.ch";
 
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::fungible();
+    let lib = scripts::non_fungible();
     let codex = Codex {
-        name: tiny_s!("CollectibleFungibleAsset"),
+        name: tiny_s!("DigitalAssetCollection"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -50,9 +50,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(FN_FUNGIBLE_ISSUE),
-            1 => lib.routine(FN_FUNGIBLE_TRANSFER),
-            0xFF => lib.routine(FN_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
+            0 => lib.routine(FN_RGB21_ISSUE),
+            1 => lib.routine(FN_RGB21_TRANSFER),
+            0xFF => lib.routine(FN_RGB21_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -60,7 +60,7 @@ fn codex() -> (Codex, Lib) {
 }
 
 fn api(codex_id: CodexId) -> Api {
-    let types = CommonTypes::new();
+    let types = Rgb21Types::new();
 
     Api::Embedded(ApiInner::<EmbeddedProc> {
         version: default!(),
@@ -68,10 +68,11 @@ fn api(codex_id: CodexId) -> Api {
         timestamp: 1732529307,
         name: None,
         developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB25")),
-        default_call: Some(CallState::with("transfer", "amount")),
+        conforms: Some(tn!("RGB21")),
+        default_call: Some(CallState::with("transfer", "fractions")),
         reserved: default!(),
         append_only: tiny_bmap! {
+            // NFT collection name
             vname!("name") => AppendApi {
                 sem_id: types.get("RGBContract.AssetName"),
                 raw_sem_id: SemId::unit(),
@@ -84,22 +85,22 @@ fn api(codex_id: CodexId) -> Api {
                 published: true,
                 adaptor: EmbeddedImmutable(G_DETAILS),
             },
-            vname!("precision") => AppendApi {
-                sem_id: types.get("RGBContract.Precision"),
+            vname!("fractions") => AppendApi {
+                sem_id: types.get("RGBContract.OwnedFraction"),
                 raw_sem_id: SemId::unit(),
                 published: true,
                 adaptor: EmbeddedImmutable(G_PRECISION),
             },
-            vname!("circulating") => AppendApi {
-                sem_id: types.get("RGBContract.Amount"),
-                raw_sem_id: SemId::unit(),
+            vname!("token") => AppendApi {
+                sem_id: types.get("RGB21.Nft"),
+                raw_sem_id: types.get("RGB21.NftSpec"),
                 published: true,
                 adaptor: EmbeddedImmutable(G_SUPPLY),
             },
         },
         destructible: tiny_bmap! {
-            vname!("amount") => DestructibleApi {
-                sem_id: types.get("RGBContract.Amount"),
+            vname!("fractions") => DestructibleApi {
+                sem_id: types.get("RGB21.NftAllocation"),
                 arithmetics: EmbeddedArithm::Fungible,
                 adaptor: EmbeddedImmutable(O_AMOUNT),
             }
@@ -129,6 +130,6 @@ fn main() {
         types.type_system(),
     );
     issuer
-        .save("compiled/CollectibleFungibleAsset.issuer")
+        .save("compiled/DigitalAssetCollection.issuer")
         .expect("unable to save issuer to a file");
 }

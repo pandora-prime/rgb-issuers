@@ -22,8 +22,8 @@
 
 mod fungible;
 mod non_fungible;
+mod shared;
 
-pub use fungible::{
-    fungible, FN_FUNGIBLE_TRANSFER, FN_RGB20_ISSUE, FN_RGB25_ISSUE, FUNGIBLE_LIB_ID,
-};
-pub use non_fungible::{non_fungible, FN_RGB21_ISSUE, FN_RGB21_TRANSFER, NON_FUNGIBLE_LIB_ID};
+pub use fungible::{fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+pub use non_fungible::{non_fungible, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
+pub use shared::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};

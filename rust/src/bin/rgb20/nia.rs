@@ -31,8 +31,8 @@ use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
 use ifaces::CommonTypes;
-use issuers::scripts::{self, FN_FUNGIBLE_TRANSFER, FN_RGB20_ISSUE};
-use issuers::{GLOBAL_ASSET_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
+use issuers::scripts::{self, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use issuers::{G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -50,7 +50,7 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(FN_RGB20_ISSUE),
+            0 => lib.routine(FN_FUNGIBLE_ISSUE),
             1 => lib.routine(FN_FUNGIBLE_TRANSFER),
             0xFF => lib.routine(FN_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
@@ -76,7 +76,7 @@ fn api(codex_id: CodexId) -> Api {
                 sem_id: types.get("RGBContract.AssetName"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_ASSET_NAME),
+                adaptor: EmbeddedImmutable(G_NAME),
             },
             vname!("ticker") => AppendApi {
                 sem_id: types.get("RGBContract.Ticker"),
@@ -121,7 +121,12 @@ fn main() {
     let (codex, lib) = codex();
     let api = api(codex.codex_id());
 
-    let issuer = Schema::new(codex, api, [lib], types.type_system());
+    let issuer = Schema::new(
+        codex,
+        api,
+        [shared_lib().into_lib(), lib],
+        types.type_system(),
+    );
     issuer
         .save("compiled/NonInflatableAsset.issuer")
         .expect("unable to save issuer to a file");

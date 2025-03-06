@@ -9,6 +9,10 @@ name = "nia"
 path = "src/bin/rgb20/nia.rs"
 
 [[bin]]
+name = "dac"
+path = "src/bin/rgb21/dac.rs"
+
+[[bin]]
 name = "uda"
 path = "src/bin/rgb21/uda.rs"
 
