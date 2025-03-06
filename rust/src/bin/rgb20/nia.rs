@@ -31,8 +31,8 @@ use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
 use ifaces::CommonTypes;
-use issuers::scripts::{self, SUB_FUNGIBLE_ISSUE_RGB20, SUB_FUNGIBLE_TRANSFER};
-use issuers::{GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, GLOBAL_TICKER, OWNED_VALUE};
+use issuers::scripts::{self, FN_FUNGIBLE_TRANSFER, FN_RGB20_ISSUE};
+use issuers::{GLOBAL_ASSET_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -50,9 +50,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(SUB_FUNGIBLE_ISSUE_RGB20),
-            1 => lib.routine(SUB_FUNGIBLE_TRANSFER),
-            0xFF => lib.routine(SUB_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
+            0 => lib.routine(FN_RGB20_ISSUE),
+            1 => lib.routine(FN_FUNGIBLE_TRANSFER),
+            0xFF => lib.routine(FN_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -82,26 +82,26 @@ fn api(codex_id: CodexId) -> Api {
                 sem_id: types.get("RGBContract.Ticker"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_TICKER),
+                adaptor: EmbeddedImmutable(G_TICKER),
             },
             vname!("precision") => AppendApi {
                 sem_id: types.get("RGBContract.Precision"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_PRECISION),
+                adaptor: EmbeddedImmutable(G_PRECISION),
             },
             vname!("circulating") => AppendApi {
                 sem_id: types.get("RGBContract.Amount"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_SUPPLY),
+                adaptor: EmbeddedImmutable(G_SUPPLY),
             },
         },
         destructible: tiny_bmap! {
             vname!("amount") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(OWNED_VALUE),
+                adaptor: EmbeddedImmutable(O_AMOUNT),
             }
         },
         readers: empty!(),

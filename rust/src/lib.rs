@@ -28,8 +28,8 @@ compile_error!("feature std must be used");
 pub mod scripts;
 
 pub const GLOBAL_ASSET_NAME: u256 = u256::ZERO;
-pub const GLOBAL_TICKER: u256 = u256::ONE;
-pub const GLOBAL_PRECISION: u256 = u256::from_inner([2, 0, 0, 0]);
-pub const GLOBAL_SUPPLY: u256 = u256::from_inner([3, 0, 0, 0]);
-pub const GLOBAL_ASSET_DETAILS: u256 = u256::from_inner([4, 0, 0, 0]);
-pub const OWNED_VALUE: u256 = u256::ZERO;
+pub const G_TICKER: u256 = u256::ONE;
+pub const G_PRECISION: u256 = u256::from_inner([2, 0, 0, 0]);
+pub const G_SUPPLY: u256 = u256::from_inner([3, 0, 0, 0]);
+pub const G_DETAILS: u256 = u256::from_inner([4, 0, 0, 0]);
+pub const O_AMOUNT: u256 = u256::ZERO;

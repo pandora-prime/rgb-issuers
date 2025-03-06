@@ -24,7 +24,6 @@ mod fungible;
 mod non_fungible;
 
 pub use fungible::{
-    fungible, FUNGIBLE_LIB_ID, SUB_FUNGIBLE_ISSUE_RGB20, SUB_FUNGIBLE_ISSUE_RGB25,
-    SUB_FUNGIBLE_TRANSFER,
+    fungible, FN_FUNGIBLE_TRANSFER, FN_RGB20_ISSUE, FN_RGB25_ISSUE, FUNGIBLE_LIB_ID,
 };
-pub use non_fungible::{non_fungible, NON_FUNGIBLE_LIB_ID, SUB_ISSUE_RGB21, SUB_TRANSFER_RGB21};
+pub use non_fungible::{non_fungible, FN_RGB21_ISSUE, FN_RGB21_TRANSFER, NON_FUNGIBLE_LIB_ID};

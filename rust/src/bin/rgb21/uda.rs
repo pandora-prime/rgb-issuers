@@ -31,10 +31,8 @@ use hypersonic::{
     Api, ApiInner, AppendApi, CallState, Codex, CodexId, DestructibleApi, Identity, Schema,
 };
 use ifaces::{CommonTypes, Rgb21Types};
-use issuers::scripts::{self, SUB_ISSUE_RGB21, SUB_TRANSFER_RGB21};
-use issuers::{
-    GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, OWNED_VALUE,
-};
+use issuers::scripts::{self, FN_RGB21_ISSUE, FN_RGB21_TRANSFER};
+use issuers::{GLOBAL_ASSET_NAME, G_DETAILS, G_PRECISION, G_SUPPLY, O_AMOUNT};
 use strict_types::SemId;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -52,9 +50,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(SUB_ISSUE_RGB21),
-            1 => lib.routine(SUB_TRANSFER_RGB21),
-            0xFF => lib.routine(SUB_TRANSFER_RGB21), // Blank transition is just an ordinary self-transfer
+            0 => lib.routine(FN_RGB21_ISSUE),
+            1 => lib.routine(FN_RGB21_TRANSFER),
+            0xFF => lib.routine(FN_RGB21_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -85,26 +83,26 @@ fn api(codex_id: CodexId) -> Api {
                 sem_id: SemId::unit(),
                 raw_sem_id: types.get("RGBContract.Details"),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_ASSET_DETAILS),
+                adaptor: EmbeddedImmutable(G_DETAILS),
             },
             vname!("fractions") => AppendApi {
                 sem_id: types.get("RGB21.OwnedFraction"),
                 raw_sem_id: SemId::unit(),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_PRECISION),
+                adaptor: EmbeddedImmutable(G_PRECISION),
             },
             vname!("token") => AppendApi {
                 sem_id: types.get("RGB21.Nft"),
                 raw_sem_id: types.get("RGB21.NftSpec"),
                 published: true,
-                adaptor: EmbeddedImmutable(GLOBAL_SUPPLY),
+                adaptor: EmbeddedImmutable(G_SUPPLY),
             },
         },
         destructible: tiny_bmap! {
             vname!("fractions") => DestructibleApi {
                 sem_id: types.get("RGB21.NftAllocation"),
                 arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(OWNED_VALUE),
+                adaptor: EmbeddedImmutable(O_AMOUNT),
             }
         },
         readers: empty!(),

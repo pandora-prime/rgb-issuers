@@ -23,36 +23,34 @@
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
-use crate::{
-    GLOBAL_ASSET_DETAILS, GLOBAL_ASSET_NAME, GLOBAL_PRECISION, GLOBAL_SUPPLY, OWNED_VALUE,
-};
+use crate::{GLOBAL_ASSET_NAME, G_DETAILS, G_PRECISION, G_SUPPLY, O_AMOUNT};
 
 pub const NON_FUNGIBLE_LIB_ID: &str = "";
 
-pub const SUB_ISSUE_RGB21: u16 = 0;
-pub const SUB_TRANSFER_RGB21: u16 = 6;
+pub const FN_RGB21_ISSUE: u16 = 0;
+pub const FN_RGB21_TRANSFER: u16 = 6;
+
+pub(self) const NEXT_TOKEN: u16 = 1;
+pub(self) const END_TOKENS: u16 = 2;
+pub(self) const NEXT_OWNED: u16 = 3;
+pub(self) const NEXT_GLOBAL: u16 = 4;
+pub(self) const END_TOKEN: u16 = 5;
+pub(self) const LOOP_TOKEN: u16 = 7;
+pub(self) const VERIFY_TOKEN: u16 = 8;
+pub(self) const SUM_INPUTS: u16 = 9;
+pub(self) const SUM_OUTPUTS: u16 = 10;
 
 pub fn non_fungible() -> CompiledLib {
-    assert_eq!(OWNED_VALUE, GLOBAL_ASSET_NAME);
-
-    const NEXT_TOKEN: u16 = 1;
-    const END_TOKENS: u16 = 2;
-    const NEXT_OWNED: u16 = 3;
-    const NEXT_GLOBAL: u16 = 4;
-    const END_TOKEN: u16 = 5;
-    const LOOP_TOKEN: u16 = 7;
-    const VERIFY_TOKEN: u16 = 8;
-    const SUM_INPUTS: u16 = 9;
-    const SUM_OUTPUTS: u16 = 10;
+    assert_eq!(O_AMOUNT, GLOBAL_ASSET_NAME);
 
     let mut code = uasm! {
     // .routine SUB_ISSUE_RGB21
-        nop                               ;// Marks start of routine / entry point / goto target
+        nop                     ;// Marks start of routine / entry point / goto target
         // Set initial values
-        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value (also global asset name)
-        mov     EF, :GLOBAL_ASSET_DETAILS  ;// Set EF to field element representing global asset details
-        mov     EG, :GLOBAL_PRECISION      ;// Set EF to field element representing global fractions
-        mov     EH, :GLOBAL_SUPPLY         ;// Set EF to field element representing global tokens
+        mov     EE, :O_AMOUNT   ;// Set EE to the field element representing owned value (also global asset name)
+        mov     EF, :G_DETAILS  ;// Set EF to field element representing global asset details
+        mov     EG, :G_PRECISION;// Set EF to field element representing global fractions
+        mov     EH, :G_SUPPLY   ;// Set EF to field element representing global tokens
         mov     E2, 0           ;// E3 will contain sum of outputs
         mov     E7, 0           ;// E7 will hold 0 as a constant for `eq` operation
         mov     E8, 1           ;// E8 will hold 1 as a constant for counter increment operation
@@ -123,7 +121,7 @@ pub fn non_fungible() -> CompiledLib {
         not     CO              ;// Invert result (we need NO state as a Success)
         chk     CO              ;// Fail if there is a global state
 
-        mov     EE, :OWNED_VALUE;// Set EE to the field element representing owned value
+        mov     EE, :O_AMOUNT;// Set EE to the field element representing owned value
 
         // For each token verify sum of inputs equal sum of outputs
     // .label LOOP_TOKEN
