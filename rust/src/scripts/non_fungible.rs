@@ -27,23 +27,19 @@ use super::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
 use crate::{G_SUPPLY, O_AMOUNT};
 
 pub const FN_RGB21_ISSUE: u16 = 0;
-pub const FN_RGB21_TRANSFER: u16 = 6;
-
-pub(self) const NEXT_TOKEN: u16 = 1;
-pub(self) const END_TOKENS: u16 = 2;
-pub(self) const NEXT_OWNED: u16 = 3;
-pub(self) const NEXT_GLOBAL: u16 = 4;
-pub(self) const END_TOKEN: u16 = 5;
-pub(self) const LOOP_TOKEN: u16 = 7;
+pub const FN_UDA_TRANSFER: u16 = 3;
+pub const FN_UAC_TRANSFER: u16 = 4;
+pub const FN_FAC_TRANSFER: u16 = 6;
 
 pub(self) const VERIFY_TOKEN: u16 = 1;
-pub(self) const VERIFY_AMOUNT: u16 = 2;
 
-pub fn unique_lib() -> CompiledLib {
+pub fn uda_lib() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
+    const VERIFY_AMOUNT: u16 = 2;
+
     let mut code = uasm! {
-    // .proc FN_UDA_ISSUE
+    // .proc FN_RGB21_ISSUE
         nop;
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
         // Check that there is no fractionality
@@ -57,7 +53,7 @@ pub fn unique_lib() -> CompiledLib {
         not     CO;
         chk     CO;
 
-        call    :VERIFY_AMOUNT  ;// Verify token spec
+        call    :VERIFY_AMOUNT  ;// Verify token amount
         ret;
 
     // .proc VERIFY_TOKEN
@@ -68,7 +64,7 @@ pub fn unique_lib() -> CompiledLib {
         chk     CO              ;// Or fail otherwise
         test    EB              ;// Token id must be set
         chk     CO              ;// Or we should fail
-        mov     EE, EB          ;// Save token id for FN_SUM_OUTPUTS
+        mov     EE, EB          ;// Save token id for VERIFY_AMOUNT
         test    EC              ;// ensure other field elements are empty
         not     CO              ;// invert CO value (we need test to fail)
         chk     CO              ;// fail if not
@@ -77,7 +73,7 @@ pub fn unique_lib() -> CompiledLib {
         chk     CO              ;// fail if not
         ret;
 
-    // .proc VERIFY_AMOUNT
+    // .routine VERIFY_AMOUNT
         nop;
         ldo     :destructible;
         mov     E7, :O_AMOUNT   ;// Set E7 to field element representing token data
@@ -95,6 +91,94 @@ pub fn unique_lib() -> CompiledLib {
         not     CO;
         chk     CO;
         ret;
+
+    // .proc FN_UDA_TRANSFER
+        nop;
+        ret; // TODO: Implement
+    };
+
+    CompiledLib::compile(&mut code, &[&shared_lib()])
+        .unwrap_or_else(|err| panic!("Invalid script: {err}"))
+}
+
+pub fn uac_lib() -> CompiledLib {
+    let shared = shared_lib().into_lib().lib_id();
+
+    const NEXT_TOKEN: u16 = 1;
+    const VERIFY_TOKEN: u16 = 2;
+    const VERIFY_AMOUNT: u16 = 3;
+
+    let mut code = uasm! {
+    // .proc FN_RGB21_ISSUE
+        nop;
+        call    shared, :FN_ASSET_SPEC   ;// Call asset check
+        // Check that there is no fractionality
+        mov     E1, 1;
+        eq      EB, E1;
+        chk     CO;
+
+    // .label NEXT_TOKEN
+        nop;
+        ldo     :immutable      ;// Read token information
+        chk     CO;
+        jif     CO, +3;
+        ret;
+
+        call    :VERIFY_TOKEN   ;// Verify token spec
+        rsto    :destructible   ;
+        mov     E2, 0           ;// Initialize token counter
+        call    :VERIFY_AMOUNT  ;// Verify token amount
+        mov     E7, 1           ;// Check there is only one token
+        eq      EB, E7;
+        chk     CO;
+        jmp     :NEXT_TOKEN;
+
+    // .proc VERIFY_TOKEN
+        nop;
+        // Verify token spec
+        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
+        eq      EA, E7          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        test    EB              ;// Token id must be set
+        chk     CO              ;// Or we should fail
+        mov     EE, EB          ;// Save token id for VERIFY_AMOUNT
+        test    EC              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        ret;
+
+    // .proc VERIFY_AMOUNT
+        nop;
+        ldo     :destructible;
+        chk     CO;
+        jif     CO, +3;
+        ret;
+
+        mov     E7, :O_AMOUNT   ;// Check that the state type is correct
+        eq      EA, E7;
+        chk     CO;
+
+        eq      EC, EE          ;// Filter by token Id
+        chk     CO;
+        jif     CO, +3;
+        ret;
+
+        mov     E7, 1           ;// Check amount is correct
+        eq      EB, E7;
+        chk     CO;
+
+        add     E2, E7          ;// Increase token counter
+
+        test    ED;
+        chk     CO;
+        jmp     :VERIFY_AMOUNT  ;// Process to next token
+
+    // .proc FN_UAC_TRANSFER
+        nop;
+        ret; // TODO: Implement
     };
 
     CompiledLib::compile(&mut code, &[&shared_lib()])
@@ -103,7 +187,14 @@ pub fn unique_lib() -> CompiledLib {
 
 pub fn fractionable() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
-    let unique = unique_lib().into_lib().lib_id();
+    let unique = uda_lib().into_lib().lib_id();
+
+    const NEXT_TOKEN: u16 = 1;
+    const END_TOKENS: u16 = 2;
+    const NEXT_OWNED: u16 = 3;
+    const NEXT_GLOBAL: u16 = 4;
+    const END_TOKEN: u16 = 5;
+    const LOOP_TOKEN: u16 = 7;
 
     let mut code = uasm! {
     // .proc FN_RGB21_ISSUE
@@ -191,7 +282,7 @@ pub fn fractionable() -> CompiledLib {
         jmp     :LOOP_TOKEN     ;// Process to the next token
     };
 
-    CompiledLib::compile(&mut code, &[&shared_lib(), &unique_lib()])
+    CompiledLib::compile(&mut code, &[&shared_lib(), &uda_lib()])
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
@@ -218,7 +309,7 @@ mod tests {
         );
         fn resolver(id: LibId) -> Option<Lib> {
             let lib = fractionable();
-            let unique = unique_lib();
+            let unique = uda_lib();
             let shared = shared_lib();
             if lib.as_lib().lib_id() == id {
                 return Some(lib.into_lib());

@@ -25,15 +25,15 @@ extern crate amplify;
 
 use hypersonic::{Codex, Identity, Schema};
 use ifaces::CommonTypes;
-use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_UDA_TRANSFER};
+use issuers::scripts::{self, shared_lib, uda_lib, FN_FAC_TRANSFER, FN_RGB21_ISSUE};
 use issuers::PANDORA;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
 
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::uda_lib();
+    let lib = scripts::fractionable();
     let codex = Codex {
-        name: tiny_s!("Unique digital asset"),
+        name: tiny_s!("Fractional asset collection"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -42,8 +42,8 @@ fn codex() -> (Codex, Lib) {
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
             0 => lib.routine(FN_RGB21_ISSUE),
-            1 => lib.routine(FN_UDA_TRANSFER),
-            0xFF => lib.routine(FN_UDA_TRANSFER), // Blank transition is just an ordinary self-transfer
+            1 => lib.routine(FN_FAC_TRANSFER),
+            0xFF => lib.routine(FN_FAC_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -59,10 +59,10 @@ fn main() {
     let issuer = Schema::new(
         codex,
         api,
-        [shared_lib().into_lib(), lib],
+        [shared_lib().into_lib(), uda_lib().into_lib(), lib],
         types.type_system(),
     );
     issuer
-        .save("compiled/RGB21-UDA.issuer")
+        .save("compiled/RGB21-FAC.issuer")
         .expect("unable to save issuer to a file");
 }

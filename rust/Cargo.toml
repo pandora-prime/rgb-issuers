@@ -5,20 +5,24 @@ edition = "2021"
 publish = false
 
 [[bin]]
-name = "nia"
-path = "src/bin/rgb20/nia.rs"
-
-[[bin]]
-name = "dac"
-path = "src/bin/rgb21/dac.rs"
+name = "nfa"
+path = "src/bin/rgb20/nfa.rs"
 
 [[bin]]
 name = "uda"
 path = "src/bin/rgb21/uda.rs"
 
 [[bin]]
-name = "cfa"
-path = "src/bin/rgb25/cfa.rs"
+name = "uac"
+path = "src/bin/rgb21/uac.rs"
+
+[[bin]]
+name = "fac"
+path = "src/bin/rgb21/fac.rs"
+
+[[bin]]
+name = "fua"
+path = "src/bin/rgb25/fua.rs"
 
 [lib]
 

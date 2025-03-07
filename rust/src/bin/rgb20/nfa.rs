@@ -34,7 +34,7 @@ const PANDORA: &str = "dns:pandoraprime.ch";
 fn codex() -> (Codex, Lib) {
     let lib = scripts::fungible();
     let codex = Codex {
-        name: tiny_s!("CollectibleFungibleAsset"),
+        name: tiny_s!("Non-inflatable fungible asset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -54,9 +54,8 @@ fn codex() -> (Codex, Lib) {
 fn main() {
     let types = CommonTypes::new();
     let (codex, lib) = codex();
-    let api = issuers::ifaces::rgb25::api(codex.codex_id());
+    let api = issuers::ifaces::rgb20::api(codex.codex_id());
 
-    // Creating DAO with three participants
     let issuer = Schema::new(
         codex,
         api,
@@ -64,6 +63,6 @@ fn main() {
         types.type_system(),
     );
     issuer
-        .save("compiled/CollectibleFungibleAsset.issuer")
+        .save("compiled/RGB20-NFA.issuer")
         .expect("unable to save issuer to a file");
 }

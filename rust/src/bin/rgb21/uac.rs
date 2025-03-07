@@ -25,16 +25,15 @@ extern crate amplify;
 
 use hypersonic::{Codex, Identity, Schema};
 use ifaces::CommonTypes;
-use issuers::scripts::{self, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_UAC_TRANSFER};
+use issuers::PANDORA;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
 
-const PANDORA: &str = "dns:pandoraprime.ch";
-
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::fungible();
+    let lib = scripts::uac_lib();
     let codex = Codex {
-        name: tiny_s!("NonInflatableAsset"),
+        name: tiny_s!("Unique digital collection"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -42,9 +41,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(FN_FUNGIBLE_ISSUE),
-            1 => lib.routine(FN_FUNGIBLE_TRANSFER),
-            0xFF => lib.routine(FN_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
+            0 => lib.routine(FN_RGB21_ISSUE),
+            1 => lib.routine(FN_UAC_TRANSFER),
+            0xFF => lib.routine(FN_UAC_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
         reserved: default!(),
     };
@@ -54,8 +53,9 @@ fn codex() -> (Codex, Lib) {
 fn main() {
     let types = CommonTypes::new();
     let (codex, lib) = codex();
-    let api = issuers::ifaces::rgb20::api(codex.codex_id());
+    let api = issuers::ifaces::rgb21::api(codex.codex_id());
 
+    // Creating DAO with three participants
     let issuer = Schema::new(
         codex,
         api,
@@ -63,6 +63,6 @@ fn main() {
         types.type_system(),
     );
     issuer
-        .save("compiled/NonInflatableAsset.issuer")
+        .save("compiled/RGB21-UAC.issuer")
         .expect("unable to save issuer to a file");
 }
