@@ -36,8 +36,74 @@ pub(self) const NEXT_GLOBAL: u16 = 4;
 pub(self) const END_TOKEN: u16 = 5;
 pub(self) const LOOP_TOKEN: u16 = 7;
 
-pub fn non_fungible() -> CompiledLib {
+pub(self) const VERIFY_TOKEN: u16 = 1;
+pub(self) const VERIFY_AMOUNT: u16 = 2;
+
+pub fn unique_lib() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
+
+    let mut code = uasm! {
+    // .proc FN_UDA_ISSUE
+        nop;
+        call    shared, :FN_ASSET_SPEC   ;// Call asset check
+        // Check that there is no fractionality
+        mov     E1, 1;
+        eq      EB, E1;
+        chk     CO;
+
+        ldo     :immutable      ;// Read fourth global state - token information
+        call    :VERIFY_TOKEN   ;// Verify token spec
+        cknxo   :immutable      ;// Verify there is no more tokens
+        not     CO;
+        chk     CO;
+
+        call    :VERIFY_AMOUNT  ;// Verify token spec
+        ret;
+
+    // .proc VERIFY_TOKEN
+        nop;
+        // Verify token spec
+        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
+        eq      EA, E7          ;// It must has correct state type
+        chk     CO              ;// Or fail otherwise
+        test    EB              ;// Token id must be set
+        chk     CO              ;// Or we should fail
+        mov     EE, EB          ;// Save token id for FN_SUM_OUTPUTS
+        test    EC              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        test    ED              ;// ensure other field elements are empty
+        not     CO              ;// invert CO value (we need test to fail)
+        chk     CO              ;// fail if not
+        ret;
+
+    // .proc VERIFY_AMOUNT
+        nop;
+        ldo     :destructible;
+        mov     E7, :O_AMOUNT   ;// Set E7 to field element representing token data
+        eq      EA, E7;
+        chk     CO;
+        mov     E7, 1;
+        eq      EB, E7;
+        chk     CO;
+        eq      EC, EE;
+        chk     CO;
+        test    ED;
+        chk     CO;
+
+        cknxo   :destructible   ;// Verify there is no more tokens
+        not     CO;
+        chk     CO;
+        ret;
+    };
+
+    CompiledLib::compile(&mut code, &[&shared_lib()])
+        .unwrap_or_else(|err| panic!("Invalid script: {err}"))
+}
+
+pub fn fractionable() -> CompiledLib {
+    let shared = shared_lib().into_lib().lib_id();
+    let unique = unique_lib().into_lib().lib_id();
 
     let mut code = uasm! {
     // .proc FN_RGB21_ISSUE
@@ -50,7 +116,6 @@ pub fn non_fungible() -> CompiledLib {
 
         // Validate global tokens and issued amounts
         mov     E3, 0           ;// Start counter for tokens
-        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
 
     // .label NEXT_TOKEN
         nop;
@@ -58,17 +123,7 @@ pub fn non_fungible() -> CompiledLib {
         jif     CO, :END_TOKENS ;// Complete token validation if no more tokens left
 
         // Verify token spec
-        eq      EA, E7          ;// It must has correct state type
-        chk     CO              ;// Or fail otherwise
-        test    EB              ;// Token id must be set
-        chk     CO              ;// Or we should fail
-        mov     EE, EB          ;// Save token id for FN_SUM_OUTPUTS
-        test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
+        call    unique, :VERIFY_TOKEN     ;// Verify token spec
         // TODO: Ensure all token ids are unique
 
         // Check issued supply
@@ -136,7 +191,7 @@ pub fn non_fungible() -> CompiledLib {
         jmp     :LOOP_TOKEN     ;// Process to the next token
     };
 
-    CompiledLib::compile(&mut code, &[&shared_lib()])
+    CompiledLib::compile(&mut code, &[&shared_lib(), &unique_lib()])
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
@@ -162,17 +217,21 @@ mod tests {
             },
         );
         fn resolver(id: LibId) -> Option<Lib> {
-            let lib = non_fungible();
+            let lib = fractionable();
+            let unique = unique_lib();
             let shared = shared_lib();
             if lib.as_lib().lib_id() == id {
                 return Some(lib.into_lib());
+            }
+            if unique.as_lib().lib_id() == id {
+                return Some(unique.into_lib());
             }
             if shared.as_lib().lib_id() == id {
                 return Some(shared.into_lib());
             }
             panic!("Unknown library: {id}");
         }
-        (non_fungible(), vm, resolver)
+        (fractionable(), vm, resolver)
     }
 
     #[test]
