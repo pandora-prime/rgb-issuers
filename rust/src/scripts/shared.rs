@@ -89,6 +89,14 @@ pub fn shared_lib() -> CompiledLib {
     // .proc FN_ASSET_SPEC
         nop                     ;// Marks start of routine / entry point / goto target
 
+        // There must be no inputs
+        cknxi   :immutable;
+        not     CO;
+        chk     CO;
+        cknxi   :destructible;
+        not     CO;
+        chk     CO;
+
         ldo     :immutable      ;// Read first global state - name
         chk     CO              ;// - it must exist
         mov     E1, :G_TICKER   ;// - set E1 to the field element representing owned value (also global asset name)
