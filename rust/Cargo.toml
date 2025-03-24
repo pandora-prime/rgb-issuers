@@ -47,4 +47,6 @@ zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "master" }
 ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "master" }
 hypersonic = { git = "https://github.com/AluVM/sonic", branch = "master" }
 sonic-api = { git = "https://github.com/AluVM/sonic", branch = "master" }
+commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "master" }
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
+strict_types = { git = "https://github.com/strict-types/strict-types", branch = "master" }
