@@ -24,7 +24,7 @@
 extern crate amplify;
 
 use hypersonic::{Codex, Identity, Schema};
-use ifaces::CommonTypes;
+use ifaces::Rgb21Types;
 use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_UDA_TRANSFER};
 use issuers::PANDORA;
 use zkaluvm::alu::{CoreConfig, Lib};
@@ -51,7 +51,7 @@ fn codex() -> (Codex, Lib) {
 }
 
 fn main() {
-    let types = CommonTypes::new();
+    let types = Rgb21Types::new();
     let (codex, lib) = codex();
     let api = issuers::ifaces::rgb21::api(codex.codex_id());
 
