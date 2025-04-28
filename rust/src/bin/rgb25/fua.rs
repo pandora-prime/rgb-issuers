@@ -63,7 +63,12 @@ fn main() {
         [shared_lib().into_lib(), lib],
         types.type_system(),
     );
+    println!(
+        "Created issuer {} {}",
+        issuer.codex.name,
+        issuer.codex.codex_id()
+    );
     issuer
         .save("compiled/RGB25-FUA.issuer")
-        .expect("unable to save issuer to a file");
+        .expect("unable to save the issuer to the file");
 }

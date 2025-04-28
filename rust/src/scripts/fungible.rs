@@ -32,8 +32,7 @@ pub fn fungible() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
     let mut code = uasm! {
-    // .routine FN_FUNGIBLE_ISSUE
-        nop                     ;// Marks start of routine / entry point / goto target
+     .routine: FN_FUNGIBLE_ISSUE;
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
         fits    EB, 8:bits      ;// The precision must fit into a byte
         chk     CO              ;// - or fail otherwise
@@ -65,9 +64,7 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;
         ret;
 
-    // .routine FN_FUNGIBLE_TRANSFER
-        nop                     ;// Marks start of routine / entry point / goto target
-
+     .routine: FN_FUNGIBLE_TRANSFER;
         // Verify that no global state is defined
         ldo     :immutable      ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)

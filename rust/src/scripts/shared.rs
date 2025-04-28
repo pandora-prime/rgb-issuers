@@ -86,9 +86,7 @@ pub fn shared_lib() -> CompiledLib {
     assert_eq!(G_TICKER, G_DETAILS);
 
     let mut code = uasm! {
-    // .proc FN_ASSET_SPEC
-        nop                     ;// Marks start of routine / entry point / goto target
-
+     .proc: FN_ASSET_SPEC;
         // There must be no inputs
         cknxi   :immutable;
         not     CO;
@@ -97,19 +95,19 @@ pub fn shared_lib() -> CompiledLib {
         not     CO;
         chk     CO;
 
-        ldo     :immutable      ;// Read first global state - name
+        ldo     :immutable      ;// Read the first global state - ticker in RGB20, details in RGB21/25
         chk     CO              ;// - it must exist
         mov     E2, :G_TICKER   ;// - set E1 to the field element representing owned value (also global asset name)
         eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
-        ldo     :immutable      ;// Read the second global state (ticker for RGB20, details for RGB25)
+        ldo     :immutable      ;// Read the second global state - asset name
         chk     CO              ;// - it must exist
         mov     E2, :G_NAME     ;// - set E1 to a field element representing global asset ticker (or details)
         eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
-        ldo     :immutable      ;// Third global state - precision
+        ldo     :immutable      ;// The third global state - precision
         chk     CO              ;// - it must exist
         mov     E2, :G_PRECISION;// - set E1 to field element representing global fractions
         eq      EA, E2          ;// - it must have the correct state type
@@ -129,14 +127,12 @@ pub fn shared_lib() -> CompiledLib {
 
         ret;
 
-    // .proc FN_SUM_INPUTS
-        nop                     ;// Marks start of routine / entry point / goto target
+     .proc: FN_SUM_INPUTS;
         mov     E2, 0           ;// Set initial sum to zero
         mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
         rsti    :destructible   ;// Start iteration over inputs
 
-    // .loop LOOP_INPUTS
-        nop;
+     .label: LOOP_INPUTS;
         ldi     :destructible   ;// load next state value
 
         // Finish if no more elements are present
@@ -170,14 +166,12 @@ pub fn shared_lib() -> CompiledLib {
 
         jmp     :LOOP_INPUTS    ;// loop
 
-    // .proc FN_SUM_OUTPUTS
-        nop                     ;// Marks start of routine / entry point / goto target
+     .proc: FN_SUM_OUTPUTS;
         mov     E3, 0           ;// Set initial sum to zero
         mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
         rsto    :destructible   ;// Start iteration over outputs
 
-    // .loop LOOP_OUTPUTS
-        nop;
+     .label: LOOP_OUTPUTS;
         ldo     :destructible   ;// load next state value
 
         // Finish if no more elements are present

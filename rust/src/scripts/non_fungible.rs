@@ -219,7 +219,7 @@ pub fn fractionable() -> CompiledLib {
     const END_TOKEN: u16 = 5;
     const LOOP_TOKEN: u16 = 7;
 
-    // TODO: Check the correctness of the implementation
+    // TODO: Check the correctness and completeness of the implementation
     let mut code = uasm! {
      .proc: FN_RGB21_ISSUE;
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
