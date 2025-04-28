@@ -26,6 +26,7 @@ extern crate amplify;
 use hypersonic::{Codex, Identity, Schema};
 use ifaces::CommonTypes;
 use issuers::scripts::{self, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use std::fs;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
 
@@ -52,6 +53,8 @@ fn codex() -> (Codex, Lib) {
 }
 
 fn main() {
+    const FILE: &str = "compiled/RGB20-NFA.issuer";
+
     let types = CommonTypes::new();
     let (codex, lib) = codex();
     let api = issuers::ifaces::rgb20::api(codex.codex_id());
@@ -63,11 +66,12 @@ fn main() {
         types.type_system(),
     );
     println!(
-        "Created issuer {} {}",
+        "Created issuer '{}' with id {}",
         issuer.codex.name,
         issuer.codex.codex_id()
     );
+    let _ = fs::remove_file(FILE);
     issuer
-        .save("compiled/RGB20-NFA.issuer")
+        .save(FILE)
         .expect("unable to save the issuer to the file");
 }

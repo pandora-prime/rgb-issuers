@@ -27,6 +27,7 @@ use hypersonic::{Codex, Identity, Schema};
 use ifaces::Rgb21Types;
 use issuers::scripts::{self, shared_lib, FN_RGB21_ISSUE, FN_UAC_TRANSFER};
 use issuers::PANDORA;
+use std::fs;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
 
@@ -51,6 +52,8 @@ fn codex() -> (Codex, Lib) {
 }
 
 fn main() {
+    const FILE: &str = "compiled/RGB21-UAC.issuer";
+
     let types = Rgb21Types::new();
     let (codex, lib) = codex();
     let api = issuers::ifaces::rgb21::api(codex.codex_id());
@@ -63,11 +66,13 @@ fn main() {
         types.type_system(),
     );
     println!(
-        "Created issuer {} {}",
+        "Created issuer '{}' with id {}",
         issuer.codex.name,
         issuer.codex.codex_id()
     );
+    let _ = fs::remove_file(FILE);
+
     issuer
-        .save("compiled/RGB21-UAC.issuer")
+        .save(FILE)
         .expect("unable to save the issuer to the file");
 }
