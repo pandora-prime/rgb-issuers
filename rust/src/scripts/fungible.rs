@@ -39,24 +39,24 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;// - or fail otherwise
 
         // Validate circulating supply
-        mov     E8, :G_SUPPLY   ;// Load supply type
         ldo     :immutable      ;// Read last global state - circulating supply
         chk     CO              ;// It must exist
-        eq      EA, E8          ;// It must has correct state type
+        mov     E8, :G_SUPPLY   ;// Load supply type
+        eq      EA, E8          ;// It must have a correct state type
         chk     CO              ;// Or fail otherwise
         test    EB              ;// It must be set
         chk     CO              ;// Or we should fail
-        mov     E1, EB          ;// Save supply
+        mov     E2, EB          ;// Save supply
         test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
+        not     CO              ;// invert CO value (we need the test to fail)
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
+        not     CO              ;// invert CO value (we need the test to fail)
         chk     CO              ;// fail if not
-        mov     E2, 0           ;// E2 will contain sum of outputs
-        clr     EE              ;// Ensure EE is set to none so we enforce third element to be empty
-        call    shared, :FN_SUM_OUTPUTS    ;// Compute sum of outputs
-        eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
+        mov     E3, 0           ;// E3 will contain the sum of outputs
+        clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
+        call    shared, :FN_SUM_OUTPUTS    ;// Compute a sum of outputs
+        eq      E2, E3          ;// check that circulating supply equals to the sum of outputs
         chk     CO              ;// fail if not
 
         // Check there is no more global state
@@ -74,10 +74,10 @@ pub fn fungible() -> CompiledLib {
         chk     CO              ;// Fail if there is a global state
 
         // Verify owned state
-        clr     EE              ;// Ensure EE is set to none so we enforce third element to be empty
-        call    shared, :FN_SUM_INPUTS     ;// Compute sum of inputs
-        call    shared, :FN_SUM_OUTPUTS    ;// Compute sum of outputs
-        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
+        clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
+        call    shared, :FN_SUM_INPUTS     ;// Compute a sum of inputs into E2
+        call    shared, :FN_SUM_OUTPUTS    ;// Compute a sum of outputs into E3
+        eq      E2, E3          ;// check that the sum of inputs equals the sum of outputs
         chk     CO              ;// fail if not
 
         ret;

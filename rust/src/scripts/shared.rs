@@ -25,11 +25,11 @@ use zkaluvm::alu::CompiledLib;
 
 use crate::{G_DETAILS, G_NAME, G_PRECISION, G_TICKER, O_AMOUNT};
 
-/// Checks globals defining assent specification to be present and contain correct state type.
+/// Checks globals defining assent specification to be present and contain the correct state type.
 ///
 /// NB: Doesn't check that the values of that globals fulfill ASCII criteria (like length, use of
-/// specific chars etc.). This is not enforced by consensus here and instead, the contract will just
-/// fail to read it's state under RGB20, 21, 25 or other interface.
+/// specific chars, etc.). This is not enforced by consensus here, and instead, the contract will
+/// just fail to read its state under RGB20, 21, 25 or another interface.
 ///
 /// # Input
 ///
@@ -44,34 +44,34 @@ use crate::{G_DETAILS, G_NAME, G_PRECISION, G_TICKER, O_AMOUNT};
 /// `E1`, `EA`, `EC`-`ED`
 pub const FN_ASSET_SPEC: u16 = 0;
 
-/// Sums input owned state
+/// Sum input owned state
 ///
 /// # Input
 ///
 /// - `EE`: value expected to be present in the third field element (`EC` register returned from
-///   `ldi`). If the value of register is `None` and `EC` is not `None`, the procedure fails.
+///   `ldi`). If the value of the register is `None` and `EC` is not `None`, the procedure fails.
 ///   Otherwise, if the value in `EC` and `EE` is not equal, the procedure skips that input.
 ///
 /// # Output
 ///
-/// `E1` contains the sum of inputs.
+/// `E2` contains the sum of inputs.
 ///
 /// # Reset registers
 ///
 /// `EA`-`ED`, `E8`.
 pub const FN_SUM_INPUTS: u16 = 1;
 
-/// Sums output owned state
+/// Sum output owned state
 ///
 /// # Input
 ///
 /// - `EE`: value expected to be present in the third field element (`EC` register returned from
-///   `ldi`). If the value of register is `None` and `EC` is not `None`, the procedure fails.
+///   `ldi`). If the value of the register is `None` and `EC` is not `None`, the procedure fails.
 ///   Otherwise, if the value in `EC` and `EE` is not equal, the procedure skips that input.
 ///
 /// # Output
 ///
-/// `E2` contains the sum of inputs.
+/// `E3` contains the sum of outputs.
 ///
 /// # Reset registers
 ///
@@ -99,20 +99,20 @@ pub fn shared_lib() -> CompiledLib {
 
         ldo     :immutable      ;// Read first global state - name
         chk     CO              ;// - it must exist
-        mov     E1, :G_TICKER   ;// - set E1 to the field element representing owned value (also global asset name)
-        eq      EA, E1          ;// - it must have correct state type
+        mov     E2, :G_TICKER   ;// - set E1 to the field element representing owned value (also global asset name)
+        eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
-        ldo     :immutable      ;// Read second global state (ticker for RGB20, details for RGB25)
+        ldo     :immutable      ;// Read the second global state (ticker for RGB20, details for RGB25)
         chk     CO              ;// - it must exist
-        mov     E1, :G_NAME     ;// - set E1 to field element representing global asset ticker (or details)
-        eq      EA, E1          ;// - it must have correct state type
+        mov     E2, :G_NAME     ;// - set E1 to a field element representing global asset ticker (or details)
+        eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
         ldo     :immutable      ;// Third global state - precision
         chk     CO              ;// - it must exist
-        mov     E1, :G_PRECISION;// - set E1 to field element representing global fractions
-        eq      EA, E1          ;// - it must have correct state type
+        mov     E2, :G_PRECISION;// - set E1 to field element representing global fractions
+        eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
         test    EC              ;// - there must be no other field elements than in EC in the precision
         not     CO;
@@ -122,7 +122,7 @@ pub fn shared_lib() -> CompiledLib {
         chk     CO              ;// - or fail otherwise
 
         // Clear up
-        clr     E1;
+        clr     E2;
         clr     EA;
         clr     EC;
         clr     ED;
@@ -131,8 +131,8 @@ pub fn shared_lib() -> CompiledLib {
 
     // .proc FN_SUM_INPUTS
         nop                     ;// Marks start of routine / entry point / goto target
-        mov     E1, 0           ;// Set initial sum to zero
-        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing owned value
+        mov     E2, 0           ;// Set initial sum to zero
+        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
         rsti    :destructible   ;// Start iteration over inputs
 
     // .loop LOOP_INPUTS
@@ -164,16 +164,16 @@ pub fn shared_lib() -> CompiledLib {
 
         fits    EB, 64:bits     ;// ensure the value fits in u64
         chk     CO              ;// fail if not
-        add     E1, EB          ;// add input to input accumulator
-        fits    E1, 64:bits     ;// ensure we do not overflow
+        add     E2, EB          ;// add input to input accumulator
+        fits    E2, 64:bits     ;// ensure we do not overflow
         chk     CO              ;// fail if not
 
         jmp     :LOOP_INPUTS    ;// loop
 
     // .proc FN_SUM_OUTPUTS
         nop                     ;// Marks start of routine / entry point / goto target
-        mov     E2, 0           ;// Set initial sum to zero
-        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing owned value
+        mov     E3, 0           ;// Set initial sum to zero
+        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
         rsto    :destructible   ;// Start iteration over outputs
 
     // .loop LOOP_OUTPUTS
@@ -205,8 +205,8 @@ pub fn shared_lib() -> CompiledLib {
 
         fits    EB, 64:bits     ;// ensure the value fits in u64
         chk     CO              ;// fail if not
-        add     E2, EB          ;// add input to input accumulator
-        fits    E2, 64:bits     ;// ensure we do not overflow
+        add     E3, EB          ;// add input to input accumulator
+        fits    E3, 64:bits     ;// ensure we do not overflow
         chk     CO              ;// fail if not
 
         jmp     :LOOP_OUTPUTS   ;// loop
@@ -417,7 +417,7 @@ mod tests {
                 .exec(lib.routine(FN_SUM_INPUTS), &context, resolver)
                 .is_ok();
             let gfa: GfaCore = vm.core.cx.subcore();
-            assert_eq!(gfa.get(RegE::E1).unwrap().to_u256(), u256::from(sum));
+            assert_eq!(gfa.get(RegE::E2).unwrap().to_u256(), u256::from(sum));
             assert!(res);
         }
     }
@@ -447,7 +447,7 @@ mod tests {
                 .exec(lib.routine(FN_SUM_OUTPUTS), &context, resolver)
                 .is_ok();
             let gfa: GfaCore = vm.core.cx.subcore();
-            assert_eq!(gfa.get(RegE::E2).unwrap().to_u256(), u256::from(sum));
+            assert_eq!(gfa.get(RegE::E3).unwrap().to_u256(), u256::from(sum));
             assert!(res);
         }
     }

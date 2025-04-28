@@ -41,15 +41,16 @@ pub fn uda_lib() -> CompiledLib {
     let mut code = uasm! {
     // .proc FN_RGB21_ISSUE
         nop;
-        call    shared, :FN_ASSET_SPEC   ;// Call asset check
+        call    shared, :FN_ASSET_SPEC   ;// Call asset check.
         // Check that there is no fractionality
-        mov     E1, 1;
-        eq      EB, E1;
+        mov     E2, 1;
+        eq      EB, E2;
         chk     CO;
+        clr     E2;
 
         ldo     :immutable      ;// Read fourth global state - token information
         call    :VERIFY_TOKEN   ;// Verify token spec
-        cknxo   :immutable      ;// Verify there is no more tokens
+        cknxo   :immutable      ;// Verify there are no more tokens
         not     CO;
         chk     CO;
 
@@ -60,16 +61,16 @@ pub fn uda_lib() -> CompiledLib {
         nop;
         // Verify token spec
         mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
-        eq      EA, E7          ;// It must has correct state type
+        eq      EA, E7          ;// It must have the correct state type
         chk     CO              ;// Or fail otherwise
         test    EB              ;// Token id must be set
         chk     CO              ;// Or we should fail
         mov     EE, EB          ;// Save token id for VERIFY_AMOUNT
         test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
+        not     CO              ;// invert CO value (we need the test to fail)
         chk     CO              ;// fail if not
         test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
+        not     CO              ;// invert CO value (we need the test to fail)
         chk     CO              ;// fail if not
         ret;
 
@@ -87,7 +88,7 @@ pub fn uda_lib() -> CompiledLib {
         test    ED;
         chk     CO;
 
-        cknxo   :destructible   ;// Verify there is no more tokens
+        cknxo   :destructible   ;// Verify there are no more tokens
         not     CO;
         chk     CO;
         ret;
@@ -111,11 +112,12 @@ pub fn uac_lib() -> CompiledLib {
     let mut code = uasm! {
     // .proc FN_RGB21_ISSUE
         nop;
-        call    shared, :FN_ASSET_SPEC   ;// Call asset check
+        call    shared, :FN_ASSET_SPEC   ;// Call asset check.
         // Check that there is no fractionality
-        mov     E1, 1;
-        eq      EB, E1;
+        mov     E2, 1;
+        eq      EB, E2;
         chk     CO;
+        clr     E2;
 
     // .label NEXT_TOKEN
         nop;
@@ -166,7 +168,7 @@ pub fn uac_lib() -> CompiledLib {
         jif     CO, +3;
         ret;
 
-        mov     E7, 1           ;// Check amount is correct
+        mov     E7, 1           ;// Check the amount is correct
         eq      EB, E7;
         chk     CO;
 
@@ -174,7 +176,7 @@ pub fn uac_lib() -> CompiledLib {
 
         test    ED;
         chk     CO;
-        jmp     :VERIFY_AMOUNT  ;// Process to next token
+        jmp     :VERIFY_AMOUNT  ;// Process to the next token
 
     // .proc FN_UAC_TRANSFER
         nop;
@@ -203,10 +205,10 @@ pub fn fractionable() -> CompiledLib {
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
         fits    EB, 64:bits     ;// The precision must fit into u64
         chk     CO              ;// - or fail otherwise
-        mov     E1, EB          ;// Save fractions value to match it against issued amounts
+        mov     E2, EB          ;// Save 'fractions' value to match it against issued amounts
 
         // Validate global tokens and issued amounts
-        mov     E3, 0           ;// Start counter for tokens
+        mov     E4, 0           ;// Start counter for tokens
 
     // .label NEXT_TOKEN
         nop;
@@ -219,10 +221,10 @@ pub fn fractionable() -> CompiledLib {
 
         // Check issued supply
         call    shared, :FN_SUM_OUTPUTS    ;// Sum outputs
-        eq      E1, E2          ;// check that circulating supply equals to the sum of outputs
+        eq      E2, E3          ;// check that 'fractions' supply equals to the sum of outputs
         chk     CO              ;// fail if not
-        mov     E8, 1           ;// E8 will hold 1 as a constant for counter increment operation
-        add     E3, E8          ;// Increment token counter
+        mov     E8, 1           ;// E8 will hold 1 as a constant for counter-increment operation
+        add     E4, E8          ;// Increment token counter
         jmp     :NEXT_TOKEN     ;// Process to the next token
 
         // Validate that owned tokens match the list of issued tokens
@@ -237,7 +239,7 @@ pub fn fractionable() -> CompiledLib {
         not     CO;
         jif     CO, +3;
         ret;
-        mov     E4, EC          ;// Save token id
+        mov     E6, EC          ;// Save token id
         mov     E5, 0           ;// Start counter
         mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
     // .label NEXT_GLOBAL
@@ -246,14 +248,14 @@ pub fn fractionable() -> CompiledLib {
         jif     CO, :END_TOKEN  ;// We've done
         eq      EA, E7          ;// It must has correct state type
         jif     CO, :NEXT_GLOBAL;// If not, goto next global state
-        eq      EB, E4          ;// Check if the token id match
+        eq      EB, E6          ;// Check if the token id match
         jif     CO, :NEXT_GLOBAL;// Skip otherwise
         mov     E8, 1           ;// E8 will hold 1 as a constant for counter increment operation
         add     E5, E8          ;// Increase counter
     // .label END_TOKEN
         nop;
         mov     E8, 0           ;// E8 will hold 0 as a constant for `eq` operation
-        eq      E5, E8          ;// Check that token has allocations
+        eq      E5, E8          ;// Check that the token has allocations
         not     CO              ;// We need to invert CO so if no allocations we fail
         chk     CO              ;// Fail otherwise
         jmp     :NEXT_OWNED     ;// Go to the next owned
@@ -267,7 +269,7 @@ pub fn fractionable() -> CompiledLib {
 
         mov     EE, :O_AMOUNT;// Set EE to the field element representing owned value
 
-        // For each token verify sum of inputs equal sum of outputs
+        // For each token verify the sum of inputs equal sum of outputs
     // .label LOOP_TOKEN
         nop;
         ldi     :immutable      ;// Iterate over tokens
@@ -277,7 +279,7 @@ pub fn fractionable() -> CompiledLib {
         mov     EE, EB          ;// Save token id for FN_SUM_OUTPUTS
         call    shared, :FN_SUM_INPUTS     ;// Compute sum of inputs
         call    shared, :FN_SUM_OUTPUTS    ;// Compute sum of outputs
-        eq      E1, E2          ;// check that the sum of inputs equals sum of outputs
+        eq      E2, E3          ;// check that the sum of inputs equals sum of outputs
         chk     CO              ;// fail if not
         jmp     :LOOP_TOKEN     ;// Process to the next token
     };
