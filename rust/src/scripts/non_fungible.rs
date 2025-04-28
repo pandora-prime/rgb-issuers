@@ -166,6 +166,7 @@ pub fn collection() -> CompiledLib {
         jmp     :VERIFY_AMOUNT; // Process to the next token
 
       // Check we do not use tokens not listed in the global state
+      // TODO: Ensure all token ids are unique
       .proc: FN_UNIQUE;
         rsto    :destructible;  // Reset output owned state iterator
         mov     E2, 1;          // We need this for the first cycle to succeed
@@ -225,7 +226,7 @@ pub fn fractionable() -> CompiledLib {
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
         fits    EB, 64:bits     ;// The precision must fit into u64
         chk     CO              ;// - or fail otherwise
-        mov     E2, EB          ;// Save 'fractions' value to match it against issued amounts
+        mov     E2, EB          ;// Save the precision value to match it against issued amounts
 
         // Validate global tokens and issued amounts
         mov     E4, 0           ;// Start counter for tokens
@@ -275,7 +276,7 @@ pub fn fractionable() -> CompiledLib {
         chk     CO              ;// Fail otherwise
         jmp     :NEXT_OWNED     ;// Go to the next owned
 
-      .proc: SUB_TRANSFER_RGB21;
+      .proc: FN_FAC_TRANSFER;
         // Verify that no global state is defined
         cknxo   :immutable      ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)
