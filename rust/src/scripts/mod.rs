@@ -26,7 +26,7 @@ mod shared;
 
 pub use fungible::{fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
 pub use non_fungible::{
-    fractionable, uac_lib, uda_lib, FN_FAC_TRANSFER, FN_RGB21_ISSUE, FN_UAC_TRANSFER,
+    collection, fractionable, unique, FN_FAC_TRANSFER, FN_RGB21_ISSUE, FN_UAC_TRANSFER,
     FN_UDA_TRANSFER,
 };
 pub use shared::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};

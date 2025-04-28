@@ -31,7 +31,7 @@ use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
 
 fn codex() -> (Codex, Lib) {
-    let lib = scripts::uac_lib();
+    let lib = scripts::collection();
     let codex = Codex {
         name: tiny_s!("Unique digital collection"),
         developer: Identity::from(PANDORA),

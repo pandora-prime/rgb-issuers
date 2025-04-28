@@ -69,7 +69,7 @@ pub fn api(codex_id: CodexId) -> Api {
         },
         destructible: tiny_bmap! {
             vname!("fractions") => DestructibleApi {
-                sem_id: types.get("RGB21.OwnedFraction"),
+                sem_id: types.get("RGB21.Nft"),
                 arithmetics: EmbeddedArithm::Fungible,
                 adaptor: EmbeddedImmutable(O_AMOUNT),
             }

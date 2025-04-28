@@ -25,7 +25,7 @@ extern crate amplify;
 
 use hypersonic::{Codex, Identity, Schema};
 use ifaces::Rgb21Types;
-use issuers::scripts::{self, shared_lib, uda_lib, FN_FAC_TRANSFER, FN_RGB21_ISSUE};
+use issuers::scripts::{self, shared_lib, unique, FN_FAC_TRANSFER, FN_RGB21_ISSUE};
 use issuers::PANDORA;
 use zkaluvm::alu::{CoreConfig, Lib};
 use zkaluvm::FIELD_ORDER_SECP;
@@ -59,7 +59,7 @@ fn main() {
     let issuer = Schema::new(
         codex,
         api,
-        [shared_lib().into_lib(), uda_lib().into_lib(), lib],
+        [shared_lib().into_lib(), unique().into_lib(), lib],
         types.type_system(),
     );
     issuer

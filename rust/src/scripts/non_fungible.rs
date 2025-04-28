@@ -28,19 +28,19 @@ use crate::{G_SUPPLY, O_AMOUNT};
 
 pub const FN_RGB21_ISSUE: u16 = 0;
 pub const FN_UDA_TRANSFER: u16 = 3;
-pub const FN_UAC_TRANSFER: u16 = 4;
+pub const FN_UAC_TRANSFER: u16 = 3;
 pub const FN_FAC_TRANSFER: u16 = 6;
+pub const FN_UNIQUE: u16 = 3;
 
-pub(self) const VERIFY_TOKEN: u16 = 1;
+pub(self) const FN_VERIFY_TOKEN: u16 = 1;
 
-pub fn uda_lib() -> CompiledLib {
+pub fn unique() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
     const VERIFY_AMOUNT: u16 = 2;
 
     let mut code = uasm! {
-    // .proc FN_RGB21_ISSUE
-        nop;
+      .proc: FN_RGB21_ISSUE;
         call    shared, :FN_ASSET_SPEC   ;// Call asset check.
         // Check that there is no fractionality
         mov     E2, 1;
@@ -49,7 +49,7 @@ pub fn uda_lib() -> CompiledLib {
         clr     E2;
 
         ldo     :immutable      ;// Read fourth global state - token information
-        call    :VERIFY_TOKEN   ;// Verify token spec
+        call    :FN_VERIFY_TOKEN;// Verify token spec
         cknxo   :immutable      ;// Verify there are no more tokens
         not     CO;
         chk     CO;
@@ -57,9 +57,8 @@ pub fn uda_lib() -> CompiledLib {
         call    :VERIFY_AMOUNT  ;// Verify token amount
         ret;
 
-    // .proc VERIFY_TOKEN
-        nop;
-        // Verify token spec
+      // Verify token spec
+      .proc: FN_VERIFY_TOKEN;
         mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
         eq      EA, E7          ;// It must have the correct state type
         chk     CO              ;// Or fail otherwise
@@ -74,27 +73,25 @@ pub fn uda_lib() -> CompiledLib {
         chk     CO              ;// fail if not
         ret;
 
-    // .routine VERIFY_AMOUNT
-        nop;
+      .routine: VERIFY_AMOUNT;
         ldo     :destructible;
-        mov     E7, :O_AMOUNT   ;// Set E7 to field element representing token data
+        mov     E7, :O_AMOUNT;   // Set E7 to field element representing token data
         eq      EA, E7;
         chk     CO;
         mov     E7, 1;
-        eq      EB, E7;
+        eq      EB, E7;          // The Amount must be exactly 1
         chk     CO;
-        eq      EC, EE;
+        eq      EC, EE;         // Check that the token id is correct
         chk     CO;
-        test    ED;
+        test    ED;             // The rest of the field elements must be empty
         chk     CO;
 
-        cknxo   :destructible   ;// Verify there are no more tokens
+        cknxo   :destructible;   // Verify there are no more tokens
         not     CO;
         chk     CO;
         ret;
 
-    // .proc FN_UDA_TRANSFER
-        nop;
+      .proc: FN_UDA_TRANSFER;
         ret; // TODO: Implement
     };
 
@@ -102,94 +99,118 @@ pub fn uda_lib() -> CompiledLib {
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
-pub fn uac_lib() -> CompiledLib {
+pub fn collection() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
+    let uda = unique().into_lib().lib_id();
 
-    const NEXT_TOKEN: u16 = 1;
-    const VERIFY_TOKEN: u16 = 2;
-    const VERIFY_AMOUNT: u16 = 3;
+    const CHECK_TOKENS: u16 = 1;
+    const VERIFY_AMOUNT: u16 = 2;
+    const NEXT_OUTPUT: u16 = 4;
+    const NEXT_GLOBAL: u16 = 5;
 
     let mut code = uasm! {
-    // .proc FN_RGB21_ISSUE
-        nop;
-        call    shared, :FN_ASSET_SPEC   ;// Call asset check.
-        // Check that there is no fractionality
+      .proc: FN_RGB21_ISSUE;
+        call    shared, :FN_ASSET_SPEC; // Check asset specification
+
+        // Check there is no fractionality
         mov     E2, 1;
-        eq      EB, E2;
+        eq      EB, E2;         // EB still contains fractions from asset spec
         chk     CO;
         clr     E2;
 
-    // .label NEXT_TOKEN
-        nop;
-        ldo     :immutable      ;// Read token information
-        chk     CO;
-        jif     CO, +3;
+        call    :CHECK_TOKENS;
+        call    :FN_UNIQUE;
         ret;
 
-        call    :VERIFY_TOKEN   ;// Verify token spec
-        rsto    :destructible   ;
-        mov     E2, 0           ;// Initialize token counter
-        call    :VERIFY_AMOUNT  ;// Verify token amount
-        mov     E7, 1           ;// Check there is only one token
+      .routine: CHECK_TOKENS;
+        ldo     :immutable;     // Read token information
+        chk     CO;
+        jif     CO, +3;         // Return if no more state is count
+        ret;
+
+        call    uda, :FN_VERIFY_TOKEN; // Verify token spec
+        rsto    :destructible;  // Start iteration over owned tokens
+        mov     E2, 0;          // Initialize token counter
+        call    :VERIFY_AMOUNT; // Verify token amount
+        mov     E7, 1;          // Check token fraction is exactly 1
         eq      EB, E7;
         chk     CO;
-        jmp     :NEXT_TOKEN;
+        jmp     :CHECK_TOKENS;  // Loop next token
 
-    // .proc VERIFY_TOKEN
-        nop;
-        // Verify token spec
-        mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
-        eq      EA, E7          ;// It must has correct state type
-        chk     CO              ;// Or fail otherwise
-        test    EB              ;// Token id must be set
-        chk     CO              ;// Or we should fail
-        mov     EE, EB          ;// Save token id for VERIFY_AMOUNT
-        test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need test to fail)
-        chk     CO              ;// fail if not
         ret;
 
-    // .proc VERIFY_AMOUNT
-        nop;
+      .proc: VERIFY_AMOUNT;
         ldo     :destructible;
         chk     CO;
         jif     CO, +3;
         ret;
 
-        mov     E7, :O_AMOUNT   ;// Check that the state type is correct
+        mov     E7, :O_AMOUNT;  // Check that the state type is correct
         eq      EA, E7;
         chk     CO;
 
-        eq      EC, EE          ;// Filter by token Id
+        eq      EC, EE;         // Filter by token Id
         chk     CO;
         jif     CO, +3;
         ret;
 
-        mov     E7, 1           ;// Check the amount is correct
+        mov     E7, 1;          // Check the amount is correct
         eq      EB, E7;
         chk     CO;
 
-        add     E2, E7          ;// Increase token counter
+        add     E2, E7;         // Increase token counter
 
-        test    ED;
+        test    ED;             // The last field element must be empty
         chk     CO;
-        jmp     :VERIFY_AMOUNT  ;// Process to the next token
 
-    // .proc FN_UAC_TRANSFER
+        jmp     :VERIFY_AMOUNT; // Process to the next token
+
+      // Check we do not use tokens not listed in the global state
+      .proc: FN_UNIQUE;
+        rsto    :destructible;  // Reset output owned state iterator
+        mov     E2, 1;          // We need this for the first cycle to succeed
+
+      .label: NEXT_OUTPUT;
+        mov     E7, 1;          // Check there is a token
+        eq      E2, E7;
+        chk     CO;
+
+        ldo     :destructible;  // Load next token data
+        jif     CO, +3;         // Return if no more tokens left
+        ret;
+
+        mov     E2, 0;          // Initialize token counter for the global state
+        mov     EE, EB;         // Save the token id
+        rsto    :immutable;     // Start iteration over global state
+
+      .label: NEXT_GLOBAL;
+        ldo     :immutable;
+        jif     CO, :NEXT_OUTPUT;// No more tokens in global state, processing to the next output
+
+        eq      EC, EE;         // Filter by token id
+        jif     CO, :NEXT_GLOBAL;
+
+        add     E2, E7;         // Increment token counter
+        jmp     :NEXT_GLOBAL;
+
+      .proc: FN_UAC_TRANSFER;
         nop;
-        ret; // TODO: Implement
+
+        cknxo   :immutable;     // No new global state must be defined
+        not     CO;
+        chk     CO;
+
+        // TODO: Complete implementation
+        ret;
     };
 
-    CompiledLib::compile(&mut code, &[&shared_lib()])
+    CompiledLib::compile(&mut code, &[&shared_lib(), &unique()])
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
 pub fn fractionable() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
-    let unique = uda_lib().into_lib().lib_id();
+    let uda = unique().into_lib().lib_id();
 
     const NEXT_TOKEN: u16 = 1;
     const END_TOKENS: u16 = 2;
@@ -198,10 +219,9 @@ pub fn fractionable() -> CompiledLib {
     const END_TOKEN: u16 = 5;
     const LOOP_TOKEN: u16 = 7;
 
+    // TODO: Check the correctness of the implementation
     let mut code = uasm! {
-    // .proc FN_RGB21_ISSUE
-        nop                     ;// Marks start of routine / entry point / goto target
-
+     .proc: FN_RGB21_ISSUE;
         call    shared, :FN_ASSET_SPEC   ;// Call asset check
         fits    EB, 64:bits     ;// The precision must fit into u64
         chk     CO              ;// - or fail otherwise
@@ -210,13 +230,12 @@ pub fn fractionable() -> CompiledLib {
         // Validate global tokens and issued amounts
         mov     E4, 0           ;// Start counter for tokens
 
-    // .label NEXT_TOKEN
-        nop;
+     .label: NEXT_TOKEN;
         ldo     :immutable      ;// Read fourth global state - token information
         jif     CO, :END_TOKENS ;// Complete token validation if no more tokens left
 
         // Verify token spec
-        call    unique, :VERIFY_TOKEN     ;// Verify token spec
+        call    uda, :FN_VERIFY_TOKEN   ;// Verify token spec
         // TODO: Ensure all token ids are unique
 
         // Check issued supply
@@ -228,11 +247,9 @@ pub fn fractionable() -> CompiledLib {
         jmp     :NEXT_TOKEN     ;// Process to the next token
 
         // Validate that owned tokens match the list of issued tokens
-    // .label END_TOKENS
-        nop;
+      .label: END_TOKENS;
         rsto    :destructible   ;// Reset state iterator
-    // .label NEXT_OWNED
-        nop;
+      .label: NEXT_OWNED;
         rsto    :immutable      ;// Reset state iterator
         ldo     :destructible   ;// Iterate over tokens
         // Finish if no more elements are present
@@ -242,8 +259,7 @@ pub fn fractionable() -> CompiledLib {
         mov     E6, EC          ;// Save token id
         mov     E5, 0           ;// Start counter
         mov     E7, :G_SUPPLY   ;// Set E7 to field element representing token data
-    // .label NEXT_GLOBAL
-        nop;
+      .label: NEXT_GLOBAL;
         ldo     :immutable      ;// Load global state
         jif     CO, :END_TOKEN  ;// We've done
         eq      EA, E7          ;// It must has correct state type
@@ -252,26 +268,23 @@ pub fn fractionable() -> CompiledLib {
         jif     CO, :NEXT_GLOBAL;// Skip otherwise
         mov     E8, 1           ;// E8 will hold 1 as a constant for counter increment operation
         add     E5, E8          ;// Increase counter
-    // .label END_TOKEN
-        nop;
+      .label: END_TOKEN;
         mov     E8, 0           ;// E8 will hold 0 as a constant for `eq` operation
         eq      E5, E8          ;// Check that the token has allocations
         not     CO              ;// We need to invert CO so if no allocations we fail
         chk     CO              ;// Fail otherwise
         jmp     :NEXT_OWNED     ;// Go to the next owned
 
-    // .proc SUB_TRANSFER_RGB21
-        nop;
+      .proc: SUB_TRANSFER_RGB21;
         // Verify that no global state is defined
-        ldo     :immutable      ;// Try to iterate over global state
+        cknxo   :immutable      ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)
         chk     CO              ;// Fail if there is a global state
 
         mov     EE, :O_AMOUNT;// Set EE to the field element representing owned value
 
         // For each token verify the sum of inputs equal sum of outputs
-    // .label LOOP_TOKEN
-        nop;
+      .label: LOOP_TOKEN;
         ldi     :immutable      ;// Iterate over tokens
         not     CO;
         jif     CO, +3;
@@ -282,9 +295,11 @@ pub fn fractionable() -> CompiledLib {
         eq      E2, E3          ;// check that the sum of inputs equals sum of outputs
         chk     CO              ;// fail if not
         jmp     :LOOP_TOKEN     ;// Process to the next token
+
+        // TODO: Check that no tokens not listed in global state are defined
     };
 
-    CompiledLib::compile(&mut code, &[&shared_lib(), &uda_lib()])
+    CompiledLib::compile(&mut code, &[&shared_lib(), &unique()])
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
@@ -311,7 +326,7 @@ mod tests {
         );
         fn resolver(id: LibId) -> Option<Lib> {
             let lib = fractionable();
-            let unique = uda_lib();
+            let unique = unique();
             let shared = shared_lib();
             if lib.as_lib().lib_id() == id {
                 return Some(lib.into_lib());
