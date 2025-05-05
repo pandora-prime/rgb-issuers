@@ -1,0 +1,58 @@
+import RGBContract: *
+
+-- Interface gets compiled into an API for each specific contract
+@developer "dns:lnp-bp.org"
+@timestamp 2025-05-05 10:32
+interface RGB20
+    -- non-validated global state is added with comma
+    pub ticker: Ticker
+    pub name: AssetName
+    pub precision: Precision
+    pub? terms: ContractText
+    [pub]+ issued: Amount -- same as @oneOrMany
+    [pub]* burned: Amount
+
+    read totalIssued: Amount := issued.sum
+    read totalBurned: Amount := burned.sum ?? 0
+
+    read circulating: Amount := totalIssued - totalBurned
+
+    owned? renominateRight
+    [owned]* issueRight: Amount
+    [owned]* balance: Amount
+
+    op? inflate: using [issueRight]+ -> next [issueRight]*, beneficiary [balance]*, new issued
+    op? burn: using [issueRight]+ -> next [issueRight]*, beneficiary [balance]*, new burned
+
+    op? renominate: using renominateRight
+        -> new renominateRight?, _ ticker, _  name, _ terms?, _ precision
+
+    op transfer: from [balance+] -> to [balance*]
+
+@developer "dns:pandoraprime.ch"
+@timestamp 2025-05-05 10:32
+contract NIA: RGB20
+    pub ticker: Ticker
+    pub name: AssetName
+    pub precision: Precision
+    pub issued: Amount -- same as @oneOrMany
+
+    [owned]+ balance: Amount
+
+    op transfer: from [balance+] -> to [balance*]
+        sum.from =?= sum.to !! inflation
+
+
+@issuer "dns:tether.to"
+@timestamp 2025-05-05 10:32
+issue USDT: NIA
+    set ticker := "USDT"
+    set name := "US Tether"
+
+    add balance: issuer := 100_000, @hex 6b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc
+
+
+call USDT: transfer
+    add from: issuer
+    add to: alice := 100, @hex 6b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc
+    add to: change := 90_000, @hex b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc
