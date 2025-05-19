@@ -86,30 +86,30 @@ pub fn shared_lib() -> CompiledLib {
     assert_eq!(G_TICKER, G_DETAILS);
 
     let mut code = uasm! {
-     .proc: FN_ASSET_SPEC;
+     proc FN_ASSET_SPEC:
         // There must be no inputs
-        cknxi   :immutable;
+        cknxi   immutable;
         not     CO;
         chk     CO;
-        cknxi   :destructible;
+        cknxi   destructible;
         not     CO;
         chk     CO;
 
-        ldo     :immutable      ;// Read the first global state - ticker in RGB20, details in RGB21/25
+        ldo     immutable       ;// Read the first global state - ticker in RGB20, details in RGB21/25
         chk     CO              ;// - it must exist
-        mov     E2, :G_TICKER   ;// - set E1 to the field element representing owned value (also global asset name)
+        put     E2, G_TICKER    ;// - set E1 to the field element representing owned value (also global asset name)
         eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
-        ldo     :immutable      ;// Read the second global state - asset name
+        ldo     immutable       ;// Read the second global state - asset name
         chk     CO              ;// - it must exist
-        mov     E2, :G_NAME     ;// - set E1 to a field element representing global asset ticker (or details)
+        put     E2, G_NAME      ;// - set E1 to a field element representing global asset ticker (or details)
         eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
-        ldo     :immutable      ;// The third global state - precision
+        ldo     immutable       ;// The third global state - precision
         chk     CO              ;// - it must exist
-        mov     E2, :G_PRECISION;// - set E1 to field element representing global fractions
+        put     E2, G_PRECISION ;// - set E1 to field element representing global fractions
         eq      EA, E2          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
         test    EC              ;// - there must be no other field elements than in EC in the precision
@@ -127,13 +127,13 @@ pub fn shared_lib() -> CompiledLib {
 
         ret;
 
-     .proc: FN_SUM_INPUTS;
-        mov     E2, 0           ;// Set initial sum to zero
-        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
-        rsti    :destructible   ;// Start iteration over inputs
+     proc FN_SUM_INPUTS:
+        put     E2, 0           ;// Set initial sum to zero
+        put     E8, O_AMOUNT    ;// Set EE to the field element representing the owned value
+        rsti    destructible    ;// Start iteration over inputs
 
-     .label: LOOP_INPUTS;
-        ldi     :destructible   ;// load next state value
+     label LOOP_INPUTS:
+        ldi     destructible    ;// load next state value
 
         // Finish if no more elements are present
         not     CO;
@@ -147,7 +147,7 @@ pub fn shared_lib() -> CompiledLib {
         jif     CO, +7          ;// - branch to enforce `EC` to be none as well
 
         eq      EC, EE          ;// ensure EC value equals to EE
-        jif     CO, :LOOP_INPUTS;// - read next input otherwise
+        jif     CO, LOOP_INPUTS ;// - read next input otherwise
         jmp     +4              ;// process to normal flow
 
         eq      EC, EE          ;// ensure EC is not set
@@ -158,21 +158,21 @@ pub fn shared_lib() -> CompiledLib {
         not     CO;
         chk     CO              ;// fail if not
 
-        fits    EB, 64:bits     ;// ensure the value fits in u64
+        fits    EB, 64.bits     ;// ensure the value fits in u64
         chk     CO              ;// fail if not
         add     E2, EB          ;// add input to input accumulator
-        fits    E2, 64:bits     ;// ensure we do not overflow
+        fits    E2, 64.bits     ;// ensure we do not overflow
         chk     CO              ;// fail if not
 
-        jmp     :LOOP_INPUTS    ;// loop
+        jmp     LOOP_INPUTS     ;// loop
 
-     .proc: FN_SUM_OUTPUTS;
-        mov     E3, 0           ;// Set initial sum to zero
-        mov     E8, :O_AMOUNT   ;// Set EE to the field element representing the owned value
-        rsto    :destructible   ;// Start iteration over outputs
+     proc FN_SUM_OUTPUTS:
+        put     E3, 0           ;// Set initial sum to zero
+        put     E8, O_AMOUNT    ;// Set EE to the field element representing the owned value
+        rsto    destructible    ;// Start iteration over outputs
 
-     .label: LOOP_OUTPUTS;
-        ldo     :destructible   ;// load next state value
+     label LOOP_OUTPUTS:
+        ldo     destructible    ;// load next state value
 
         // Finish if no more elements are present
         not     CO;
@@ -186,7 +186,7 @@ pub fn shared_lib() -> CompiledLib {
         jif     CO, +9          ;// - branch to enforce `EC` to be none as well
 
         eq      EC, EE          ;// ensure EC value equals to EE
-        jif     CO, :LOOP_OUTPUTS;// - read next input otherwise
+        jif     CO, LOOP_OUTPUTS;// - read next input otherwise
         jmp     +6              ;// process to normal flow
 
         test    EC              ;// ensure EC is not set
@@ -197,13 +197,13 @@ pub fn shared_lib() -> CompiledLib {
         not     CO;
         chk     CO              ;// fail if not
 
-        fits    EB, 64:bits     ;// ensure the value fits in u64
+        fits    EB, 64.bits     ;// ensure the value fits in u64
         chk     CO              ;// fail if not
         add     E3, EB          ;// add input to input accumulator
-        fits    E3, 64:bits     ;// ensure we do not overflow
+        fits    E3, 64.bits     ;// ensure we do not overflow
         chk     CO              ;// fail if not
 
-        jmp     :LOOP_OUTPUTS   ;// loop
+        jmp     LOOP_OUTPUTS    ;// loop
     };
 
     CompiledLib::compile(&mut code, &[]).unwrap_or_else(|err| panic!("Invalid script: {err}"))
@@ -243,9 +243,9 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[],
+            destructible_output: &[],
             immutable_output: &[],
         };
         let (lib, mut vm, resolver) = harness();
@@ -258,9 +258,9 @@ mod tests {
     #[test]
     fn genesis_missing_globals() {
         let mut context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[StateCell {
+            destructible_output: &[StateCell {
                 data: StateValue::new(O_AMOUNT, 1000_u64),
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -292,9 +292,9 @@ mod tests {
     #[test]
     fn genesis_wrong_order() {
         let mut context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[StateCell {
+            destructible_output: &[StateCell {
                 data: StateValue::new(O_AMOUNT, 1000_u64),
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -336,9 +336,9 @@ mod tests {
     #[test]
     fn genesis_correct() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[],
+            destructible_output: &[],
             immutable_output: &[
                 StateData::new(G_TICKER, 0u8),
                 StateData::new(G_NAME, 1u8),
@@ -380,9 +380,9 @@ mod tests {
                 .map(|val| StateValue::new(O_AMOUNT, *val))
                 .collect::<Vec<_>>();
             let context = VmContext {
-                read_once_input: input.as_slice(),
+                destructible_input: input.as_slice(),
                 immutable_input: &[],
-                read_once_output: &[],
+                destructible_output: &[],
                 immutable_output: &[],
             };
             let res = vm
@@ -402,9 +402,9 @@ mod tests {
                 .map(|val| StateValue::new(O_AMOUNT, *val))
                 .collect::<Vec<_>>();
             let context = VmContext {
-                read_once_input: input.as_slice(),
+                destructible_input: input.as_slice(),
                 immutable_input: &[],
-                read_once_output: &[],
+                destructible_output: &[],
                 immutable_output: &[],
             };
             let res = vm
@@ -432,9 +432,9 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let context = VmContext {
-                read_once_input: &[],
+                destructible_input: &[],
                 immutable_input: &[],
-                read_once_output: output.as_slice(),
+                destructible_output: output.as_slice(),
                 immutable_output: &[],
             };
             let res = vm

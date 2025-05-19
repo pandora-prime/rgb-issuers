@@ -21,8 +21,7 @@
 // the License.
 
 use amplify::num::u256;
-use hypersonic::embedded::{EmbeddedArithm, EmbeddedImmutable, EmbeddedProc};
-use hypersonic::{Api, ApiInner, AppendApi, CallState, CodexId, DestructibleApi, Identity};
+use hypersonic::{Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor, StateArithm, StateBuilder, StateConvertor};
 use ifaces::Rgb21Types;
 use strict_types::SemId;
 
@@ -31,57 +30,66 @@ use crate::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT, PANDORA};
 pub fn api(codex_id: CodexId) -> Api {
     let types = Rgb21Types::new();
 
-    Api::Embedded(ApiInner::<EmbeddedProc> {
+    Api {
         version: default!(),
         codex_id,
-        timestamp: 1732529307,
-        name: None,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB21")),
         default_call: Some(CallState::with("transfer", "fractions")),
         reserved: default!(),
-        append_only: tiny_bmap! {
+        immutable: tiny_bmap! {
             // NFT collection name
-            vname!("name") => AppendApi {
+            vname!("name") => ImmutableApi {
+                published: true,
                 sem_id: types.get("RGBContract.AssetName"),
-                raw_sem_id: SemId::unit(),
-                published: true,
-                adaptor: EmbeddedImmutable(G_NAME),
+                convertor: StateConvertor::TypedEncoder(G_NAME),
+                builder: StateBuilder::TypedEncoder(G_NAME),
+                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
+                raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("details") => AppendApi {
+            vname!("details") => ImmutableApi {
+                published: true,
                 sem_id: SemId::unit(),
-                raw_sem_id: types.get("RGBContract.Details"),
-                published: true,
-                adaptor: EmbeddedImmutable(G_DETAILS),
+                convertor: StateConvertor::TypedEncoder(G_DETAILS),
+                builder: StateBuilder::TypedEncoder(G_DETAILS),
+                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
+                raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.Details"))
             },
-            vname!("fractions") => AppendApi {
+            vname!("fractions") => ImmutableApi {
+                published: true,
                 sem_id: types.get("RGB21.OwnedFraction"),
-                raw_sem_id: SemId::unit(),
-                published: true,
-                adaptor: EmbeddedImmutable(G_PRECISION),
+                convertor: StateConvertor::TypedEncoder(G_PRECISION),
+                builder: StateBuilder::TypedEncoder(G_PRECISION),
+                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
+                raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("token") => AppendApi {
-                sem_id: types.get("RGB21.Nft"),
-                raw_sem_id: types.get("RGB21.NftSpec"),
+            vname!("token") => ImmutableApi {
                 published: true,
-                adaptor: EmbeddedImmutable(G_SUPPLY),
+                sem_id: types.get("RGB21.Nft"),
+                convertor: StateConvertor::TypedEncoder(G_SUPPLY),
+                builder: StateBuilder::TypedEncoder(G_SUPPLY),
+                raw_convertor: RawConvertor::StrictDecode(types.get("RGB21.NftSpec")),
+                raw_builder: RawBuilder::StrictEncode(types.get("RGB21.NftSpec"))
             },
         },
         destructible: tiny_bmap! {
             vname!("fractions") => DestructibleApi {
                 sem_id: types.get("RGB21.Nft"),
-                arithmetics: EmbeddedArithm::Fungible,
-                adaptor: EmbeddedImmutable(O_AMOUNT),
+                arithmetics: StateArithm::Fungible,
+                convertor: StateConvertor::TypedEncoder(O_AMOUNT),
+                builder: StateBuilder::TypedEncoder(O_AMOUNT),
+                witness_sem_id: SemId::unit(),
+                witness_builder: StateBuilder::TypedEncoder(O_AMOUNT)
             }
         },
-        readers: empty!(),
+        aggregators: empty!(),
         verifiers: tiny_bmap! {
             vname!("issue") => 0,
             vname!("transfer") => 1,
             vname!("_") => 0xFF,
         },
         errors: tiny_bmap! {
-            u256::ZERO => tiny_s!("sum of inputs is not equal to sum of outputs")
+            u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")
         },
-    })
+    }
 }

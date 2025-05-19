@@ -23,7 +23,7 @@
 #[macro_use]
 extern crate amplify;
 
-use hypersonic::{Codex, Identity, Schema};
+use hypersonic::{Codex, Identity, Issuer};
 use ifaces::CommonTypes;
 use issuers::scripts::{self, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
 use std::fs;
@@ -47,7 +47,6 @@ fn codex() -> (Codex, Lib) {
             1 => lib.routine(FN_FUNGIBLE_TRANSFER),
             0xFF => lib.routine(FN_FUNGIBLE_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
-        reserved: default!(),
     };
     (codex, lib.into_lib())
 }
@@ -59,7 +58,7 @@ fn main() {
     let (codex, lib) = codex();
     let api = issuers::ifaces::rgb20::api(codex.codex_id());
 
-    let issuer = Schema::new(
+    let issuer = Issuer::new(
         codex,
         api,
         [shared_lib().into_lib(), lib],

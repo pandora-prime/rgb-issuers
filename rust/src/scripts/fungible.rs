@@ -32,15 +32,15 @@ pub fn fungible() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
     let mut code = uasm! {
-     .routine: FN_FUNGIBLE_ISSUE;
-        call    shared, :FN_ASSET_SPEC   ;// Call asset check
-        fits    EB, 8:bits      ;// The precision must fit into a byte
+     routine FN_FUNGIBLE_ISSUE:
+        call    shared, FN_ASSET_SPEC   ;// Call asset check
+        fits    EB, 8.bits      ;// The precision must fit into a byte
         chk     CO              ;// - or fail otherwise
 
         // Validate circulating supply
-        ldo     :immutable      ;// Read last global state - circulating supply
+        ldo     immutable       ;// Read last global state - circulating supply
         chk     CO              ;// It must exist
-        mov     E8, :G_SUPPLY   ;// Load supply type
+        put     E8, G_SUPPLY    ;// Load supply type
         eq      EA, E8          ;// It must have a correct state type
         chk     CO              ;// Or fail otherwise
         test    EB              ;// It must be set
@@ -52,28 +52,28 @@ pub fn fungible() -> CompiledLib {
         test    ED              ;// ensure other field elements are empty
         not     CO              ;// invert CO value (we need the test to fail)
         chk     CO              ;// fail if not
-        mov     E3, 0           ;// E3 will contain the sum of outputs
+        put     E3, 0           ;// E3 will contain the sum of outputs
         clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
-        call    shared, :FN_SUM_OUTPUTS    ;// Compute a sum of outputs
+        call    shared, FN_SUM_OUTPUTS;// Compute a sum of outputs
         eq      E2, E3          ;// check that circulating supply equals to the sum of outputs
         chk     CO              ;// fail if not
 
         // Check there is no more global state
-        ldo     :immutable      ;
+        ldo     immutable       ;
         not     CO              ;
         chk     CO              ;
         ret;
 
-     .routine: FN_FUNGIBLE_TRANSFER;
+     routine FN_FUNGIBLE_TRANSFER:
         // Verify that no global state is defined
-        ldo     :immutable      ;// Try to iterate over global state
+        ldo     immutable       ;// Try to iterate over global state
         not     CO              ;// Invert result (we need NO state as a Success)
         chk     CO              ;// Fail if there is a global state
 
         // Verify owned state
         clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
-        call    shared, :FN_SUM_INPUTS     ;// Compute a sum of inputs into E2
-        call    shared, :FN_SUM_OUTPUTS    ;// Compute a sum of outputs into E3
+        call    shared, FN_SUM_INPUTS     ;// Compute a sum of inputs into E2
+        call    shared, FN_SUM_OUTPUTS    ;// Compute a sum of outputs into E3
         eq      E2, E3          ;// check that the sum of inputs equals the sum of outputs
         chk     CO              ;// fail if not
 
@@ -122,9 +122,9 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[],
+            destructible_output: &[],
             immutable_output: &[],
         };
         let (lib, mut vm, resolver) = harness();
@@ -137,9 +137,9 @@ mod tests {
     #[test]
     fn genesis_missing_globals() {
         let mut context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[StateCell {
+            destructible_output: &[StateCell {
                 data: StateValue::new(O_AMOUNT, 1000_u64),
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -182,9 +182,9 @@ mod tests {
     #[test]
     fn genesis_missing_owned() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[],
+            destructible_output: &[],
             immutable_output: &[
                 StateData::new(G_NAME, 0u8),
                 StateData::new(G_TICKER, 0u8),
@@ -202,9 +202,9 @@ mod tests {
     #[test]
     fn genesis_supply_mismatch() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[StateCell {
+            destructible_output: &[StateCell {
                 data: StateValue::new(O_AMOUNT, 1001_u64),
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -226,9 +226,9 @@ mod tests {
     #[test]
     fn genesis_correct() {
         let context = VmContext {
-            read_once_input: &[],
+            destructible_input: &[],
             immutable_input: &[],
-            read_once_output: &[StateCell {
+            destructible_output: &[StateCell {
                 data: StateValue::new(O_AMOUNT, 1000_u64),
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -272,9 +272,9 @@ mod tests {
         }) {
             let (lib, mut vm, resolver) = harness();
             let context = VmContext {
-                read_once_input: input.as_slice(),
+                destructible_input: input.as_slice(),
                 immutable_input: &[],
-                read_once_output: output.as_slice(),
+                destructible_output: output.as_slice(),
                 immutable_output: &[],
             };
             let res = vm

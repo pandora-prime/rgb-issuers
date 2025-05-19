@@ -23,7 +23,7 @@
 #[macro_use]
 extern crate amplify;
 
-use hypersonic::{Codex, Identity, Schema};
+use hypersonic::{Codex, Identity, Issuer};
 use ifaces::Rgb21Types;
 use issuers::scripts::{self, shared_lib, unique, FN_FAC_TRANSFER, FN_RGB21_ISSUE};
 use issuers::PANDORA;
@@ -46,7 +46,6 @@ fn codex() -> (Codex, Lib) {
             1 => lib.routine(FN_FAC_TRANSFER),
             0xFF => lib.routine(FN_FAC_TRANSFER), // Blank transition is just an ordinary self-transfer
         },
-        reserved: default!(),
     };
     (codex, lib.into_lib())
 }
@@ -59,7 +58,7 @@ fn main() {
     let api = issuers::ifaces::rgb21::api(codex.codex_id());
 
     // Creating DAO with three participants
-    let issuer = Schema::new(
+    let issuer = Issuer::new(
         codex,
         api,
         [shared_lib().into_lib(), unique().into_lib(), lib],
