@@ -1,6 +1,6 @@
 [package]
 name = "issuers"
-version = "0.12.0-beta.5"
+version = "0.12.0-rc.1"
 edition = "2021"
 publish = false
 
@@ -27,25 +27,16 @@ path = "src/bin/rgb25/fua.rs"
 [lib]
 
 [dependencies]
-amplify = "~4.8.0"
-strict_types = "~2.8.2"
-zk-aluvm = { version = "0.12.0-beta.5", features = ["std"] }
-hypersonic = { version = "0.12.0-beta.5", features = ["std"] }
-rgb-interfaces = "0.12.0-beta.5"
+amplify = "~4.9.0"
+strict_types = "~2.9.0"
+zk-aluvm = { version = "0.12.0-rc.1", features = ["std"] }
+hypersonic = { version = "0.12.0-rc.1", features = ["std"] }
+rgb-interfaces = "0.12.0-rc.1"
 
 [dev-dependencies]
-zk-aluvm = { version = "0.12.0-beta.5", features = ["std", "log"] }
+zk-aluvm = { version = "0.12.0-rc.1", features = ["std", "log"] }
 
 [features]
 default = ["std"]
 all = ["std"]
 std = [] # must-use feature
-
-[patch.crates-io]
-commit_verify = { git = "https://github.com/LNP-BP/client_side_validation", branch = "revision" }
-aluvm = { git = "https://github.com/AluVM/aluvm", branch = "revision" }
-zk-aluvm = { git = "https://github.com/AluVM/zk-aluvm", branch = "revision" }
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "revision" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "revision" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "revision" }
