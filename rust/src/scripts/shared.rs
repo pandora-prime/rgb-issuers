@@ -393,6 +393,31 @@ mod tests {
     }
 
     #[test]
+    fn sum_outputs_overflow() {
+        for output in AMOUNTS_OVERFLOW {
+            let (lib, mut vm, resolver) = harness();
+            let output = output
+                .into_iter()
+                .map(|val| StateCell {
+                    data: StateValue::new(O_AMOUNT, *val),
+                    auth: AuthToken::strict_dumb(),
+                    lock: None,
+                })
+                .collect::<Vec<_>>();
+            let context = VmContext {
+                destructible_input: &[],
+                immutable_input: &[],
+                destructible_output: output.as_slice(),
+                immutable_output: &[],
+            };
+            let res = vm
+                .exec(lib.routine(FN_SUM_OUTPUTS), &context, resolver)
+                .is_ok();
+            assert!(!res);
+        }
+    }
+
+    #[test]
     fn sum_inputs() {
         for input in AMOUNTS_OK {
             let (lib, mut vm, resolver) = harness();
