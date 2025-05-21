@@ -5,8 +5,8 @@ edition = "2021"
 publish = false
 
 [[bin]]
-name = "nfa"
-path = "src/bin/rgb20/nfa.rs"
+name = "fna"
+path = "src/bin/rgb20/fna.rs"
 
 [[bin]]
 name = "uda"

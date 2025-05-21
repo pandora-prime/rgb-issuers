@@ -20,22 +20,63 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use crate::scripts::{shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use crate::{scripts, G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT, PANDORA};
 use amplify::num::u256;
-use hypersonic::{Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor, StateArithm, StateBuilder, StateConvertor};
-use ifaces::Rgb21Types;
+use hypersonic::{
+    Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
+    RawConvertor, StateAggregator, StateArithm, StateBuilder, StateConvertor,
+};
+use ifaces::CommonTypes;
 use strict_types::SemId;
+use zkaluvm::alu::CoreConfig;
+use zkaluvm::FIELD_ORDER_SECP;
 
-use crate::{G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT, PANDORA};
+pub const RGB20_NIA_VERIFIER_GENESIS: u16 = 0;
+pub const RGB20_NIA_VERIFIER_ISSUE: u16 = 2;
+pub const RGB20_NIA_VERIFIER_TRANSFER: u16 = 1;
+pub const VERIFIER_BLANK: u16 = 0xFF;
+
+pub fn issuer() -> Issuer {
+    let lib = scripts::fungible();
+    let types = CommonTypes::new();
+    let codex = codex();
+    let api = api(codex.codex_id());
+
+    Issuer::new(
+        codex,
+        api,
+        [shared_lib().into_lib(), lib.into_lib()],
+        types.type_system(),
+    )
+}
+
+pub fn codex() -> Codex {
+    let lib = scripts::fungible();
+    Codex {
+        name: tiny_s!("Fungible Non-inflatable Asset"),
+        developer: Identity::from(PANDORA),
+        version: default!(),
+        timestamp: 1732529307,
+        field_order: FIELD_ORDER_SECP,
+        input_config: CoreConfig::default(),
+        verification_config: CoreConfig::default(),
+        verifiers: tiny_bmap! {
+            0 => lib.routine(FN_FUNGIBLE_ISSUE),
+            1 => lib.routine(FN_FUNGIBLE_TRANSFER),
+        },
+    }
+}
 
 pub fn api(codex_id: CodexId) -> Api {
-    let types = Rgb21Types::new();
+    let types = CommonTypes::new();
 
     Api {
         version: default!(),
         codex_id,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB20")),
-        default_call: Some(CallState::with("transfer", "amount")),
+        default_call: Some(CallState::with("transfer", "value")),
         reserved: default!(),
         immutable: tiny_bmap! {
             vname!("name") => ImmutableApi {
@@ -62,8 +103,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            // TODO: Rename into `issued`
-            vname!("circulating") => ImmutableApi {
+            vname!("issued") => ImmutableApi {
                 published: true,
                 sem_id: types.get("RGBContract.Amount"),
                 convertor: StateConvertor::TypedEncoder(G_SUPPLY),
@@ -73,7 +113,7 @@ pub fn api(codex_id: CodexId) -> Api {
             },
         },
         destructible: tiny_bmap! {
-            vname!("amount") => DestructibleApi {
+            vname!("balance") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedEncoder(O_AMOUNT),
@@ -82,12 +122,16 @@ pub fn api(codex_id: CodexId) -> Api {
                 witness_builder: StateBuilder::TypedEncoder(O_AMOUNT)
             }
         },
-        // TODO: Add aggregator to compute total circulating supply
-        aggregators: empty!(),
+        aggregators: tiny_bmap! {
+            vname!("knownIssued") => StateAggregator::SumV(vname!("issued")),
+            vname!("knownBurned") => StateAggregator::SumV(vname!("burned")),
+            vname!("knownCirculating") => StateAggregator::SumV(vname!("issued")),
+            vname!("maxSupply") => StateAggregator::SumV(vname!("issued")),
+        },
         verifiers: tiny_bmap! {
-            vname!("issue") => 0,
-            vname!("transfer") => 1,
-            vname!("_") => 0xFF,
+            vname!("issue") => RGB20_NIA_VERIFIER_GENESIS,
+            vname!("transfer") => RGB20_NIA_VERIFIER_TRANSFER,
+            vname!("_") => RGB20_NIA_VERIFIER_TRANSFER,
         },
         errors: tiny_bmap! {
             u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")
