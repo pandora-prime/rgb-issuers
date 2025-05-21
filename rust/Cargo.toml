@@ -9,16 +9,16 @@ name = "fna"
 path = "src/bin/rgb20/fna.rs"
 
 [[bin]]
-name = "nfa"
-path = "src/bin/rgb21/nfa.rs"
+name = "nfu"
+path = "src/bin/rgb21/nfu.rs"
 
 [[bin]]
 name = "nfc"
 path = "src/bin/rgb21/nfc.rs"
 
 [[bin]]
-name = "dnc"
-path = "src/bin/rgb21/dnc.rs"
+name = "ndc"
+path = "src/bin/rgb21/ndc.rs"
 
 [[bin]]
 name = "ufa"

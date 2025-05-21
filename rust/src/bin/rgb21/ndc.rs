@@ -22,12 +22,12 @@
 
 use std::fs;
 
-use issuers::rgb21::dnc;
+use issuers::rgb21::ndc;
 
 fn main() {
     const FILE: &'static str = "compiled/RGB21-DivisibleCollection.issuer";
 
-    let issuer = dnc::issuer();
+    let issuer = ndc::issuer();
     println!(
         "Created issuer '{}' with id {}",
         issuer.codex.name,

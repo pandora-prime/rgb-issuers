@@ -22,12 +22,12 @@
 
 use std::fs;
 
-use issuers::rgb21::nfa;
+use issuers::rgb21::nfu;
 
 fn main() {
     const FILE: &'static str = "compiled/RGB21-UniqueNFT.issuer";
 
-    let issuer = nfa::issuer();
+    let issuer = nfu::issuer();
     println!(
         "Created issuer '{}' with id {}",
         issuer.codex.name,

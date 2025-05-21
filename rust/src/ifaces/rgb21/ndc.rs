@@ -48,7 +48,7 @@ pub fn issuer() -> Issuer {
 fn codex() -> Codex {
     let lib = scripts::fractionable();
     let codex = Codex {
-        name: tiny_s!("Divisible Non-fungible Asset Collection"),
+        name: tiny_s!("Non-fungible Divisible Asset Collection"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,

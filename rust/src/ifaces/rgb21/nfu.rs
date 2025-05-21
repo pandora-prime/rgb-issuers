@@ -47,7 +47,7 @@ pub fn issuer() -> Issuer {
 fn codex() -> Codex {
     let lib = scripts::unique();
     let codex = Codex {
-        name: tiny_s!("Non-Fungible Asset"),
+        name: tiny_s!("Non-Fungible Unique Asset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,

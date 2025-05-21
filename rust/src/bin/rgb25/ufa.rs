@@ -25,7 +25,7 @@ use std::fs;
 use issuers::rgb25::ufa;
 
 fn main() {
-    const FILE: &str = "compiled/RGB25-UniqueFungible.issuer";
+    const FILE: &str = "compiled/RGB25-UniquelyFungible.issuer";
 
     let issuer = ufa::issuer();
     println!(
