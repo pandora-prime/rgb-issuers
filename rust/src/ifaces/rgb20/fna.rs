@@ -32,10 +32,8 @@ use strict_types::SemId;
 use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
 
-pub const RGB20_NIA_VERIFIER_GENESIS: u16 = 0;
-pub const RGB20_NIA_VERIFIER_ISSUE: u16 = 2;
-pub const RGB20_NIA_VERIFIER_TRANSFER: u16 = 1;
-pub const VERIFIER_BLANK: u16 = 0xFF;
+pub const VERIFIER_GENESIS: u16 = 0;
+pub const VERIFIER_TRANSFER: u16 = 1;
 
 pub fn issuer() -> Issuer {
     let lib = scripts::fungible();
@@ -62,8 +60,8 @@ pub fn codex() -> Codex {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(FN_FUNGIBLE_ISSUE),
-            1 => lib.routine(FN_FUNGIBLE_TRANSFER),
+            VERIFIER_GENESIS => lib.routine(FN_FUNGIBLE_ISSUE),
+            VERIFIER_TRANSFER => lib.routine(FN_FUNGIBLE_TRANSFER),
         },
     }
 }
@@ -76,7 +74,7 @@ pub fn api(codex_id: CodexId) -> Api {
         codex_id,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB20")),
-        default_call: Some(CallState::with("transfer", "value")),
+        default_call: Some(CallState::with("transfer", "balance")),
         reserved: default!(),
         immutable: tiny_bmap! {
             vname!("name") => ImmutableApi {
@@ -129,9 +127,9 @@ pub fn api(codex_id: CodexId) -> Api {
             vname!("maxSupply") => StateAggregator::SumV(vname!("issued")),
         },
         verifiers: tiny_bmap! {
-            vname!("issue") => RGB20_NIA_VERIFIER_GENESIS,
-            vname!("transfer") => RGB20_NIA_VERIFIER_TRANSFER,
-            vname!("_") => RGB20_NIA_VERIFIER_TRANSFER,
+            vname!("issue") => VERIFIER_GENESIS,
+            vname!("transfer") => VERIFIER_TRANSFER,
+            vname!("_") => VERIFIER_TRANSFER,
         },
         errors: tiny_bmap! {
             u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")

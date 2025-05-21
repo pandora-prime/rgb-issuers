@@ -21,8 +21,8 @@ name = "fac"
 path = "src/bin/rgb21/fac.rs"
 
 [[bin]]
-name = "fua"
-path = "src/bin/rgb25/fua.rs"
+name = "dua"
+path = "src/bin/rgb25/dua.rs"
 
 [lib]
 

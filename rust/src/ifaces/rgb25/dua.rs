@@ -20,12 +20,54 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use crate::{
+    scripts, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER, G_DETAILS, G_NAME, G_PRECISION,
+    G_SUPPLY, O_AMOUNT, PANDORA,
+};
 use amplify::num::u256;
-use hypersonic::{Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor, StateArithm, StateBuilder, StateConvertor};
-use ifaces::Rgb21Types;
+use hypersonic::{
+    Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
+    RawConvertor, StateArithm, StateBuilder, StateConvertor,
+};
+use ifaces::{CommonTypes, Rgb21Types};
 use strict_types::SemId;
+use zkaluvm::alu::CoreConfig;
+use zkaluvm::FIELD_ORDER_SECP;
 
-use crate::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT, PANDORA};
+pub const VERIFIER_GENESIS: u16 = 0;
+pub const VERIFIER_TRANSFER: u16 = 1;
+
+pub fn issuer() -> Issuer {
+    let lib = scripts::fungible();
+    let types = CommonTypes::new();
+    let codex = codex();
+    let api = api(codex.codex_id());
+
+    Issuer::new(
+        codex,
+        api,
+        [shared_lib().into_lib(), lib.into_lib()],
+        types.type_system(),
+    )
+}
+
+fn codex() -> Codex {
+    let lib = scripts::fungible();
+    let codex = Codex {
+        name: tiny_s!("Divisible unique asset"),
+        developer: Identity::from(PANDORA),
+        version: default!(),
+        timestamp: 1732529307,
+        field_order: FIELD_ORDER_SECP,
+        input_config: CoreConfig::default(),
+        verification_config: CoreConfig::default(),
+        verifiers: tiny_bmap! {
+            VERIFIER_GENESIS => lib.routine(FN_FUNGIBLE_ISSUE),
+            VERIFIER_TRANSFER => lib.routine(FN_FUNGIBLE_TRANSFER),
+        },
+    };
+    codex
+}
 
 pub fn api(codex_id: CodexId) -> Api {
     let types = Rgb21Types::new();
@@ -35,7 +77,7 @@ pub fn api(codex_id: CodexId) -> Api {
         codex_id,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB25")),
-        default_call: Some(CallState::with("transfer", "amount")),
+        default_call: Some(CallState::with("transfer", "balance")),
         reserved: default!(),
         immutable: tiny_bmap! {
             vname!("name") => ImmutableApi {
@@ -72,7 +114,7 @@ pub fn api(codex_id: CodexId) -> Api {
             },
         },
         destructible: tiny_bmap! {
-            vname!("amount") => DestructibleApi {
+            vname!("balance") => DestructibleApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedEncoder(O_AMOUNT),
@@ -83,9 +125,9 @@ pub fn api(codex_id: CodexId) -> Api {
         },
         aggregators: empty!(),
         verifiers: tiny_bmap! {
-            vname!("issue") => 0,
-            vname!("transfer") => 1,
-            vname!("_") => 0xFF,
+            vname!("issue") => VERIFIER_GENESIS,
+            vname!("transfer") => VERIFIER_TRANSFER,
+            vname!("_") => VERIFIER_TRANSFER,
         },
         errors: tiny_bmap! {
             u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")
