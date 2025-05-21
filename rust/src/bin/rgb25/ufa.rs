@@ -20,14 +20,13 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use issuers::rgb25::ufa;
 use std::fs;
 
-use issuers::rgb20::fna;
-
 fn main() {
-    const FILE: &str = "compiled/RGB20-Simplest.issuer";
+    const FILE: &str = "compiled/RGB25-UniqueFungible.issuer";
 
-    let issuer = fna::issuer();
+    let issuer = ufa::issuer();
     println!(
         "Created issuer '{}' with id {}",
         issuer.codex.name,

@@ -20,20 +20,4 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use issuers::rgb25::dua;
-use std::fs;
-
-fn main() {
-    const FILE: &str = "compiled/RGB25-DUA.issuer";
-
-    let issuer = dua::issuer();
-    println!(
-        "Created issuer '{}' with id {}",
-        issuer.codex.name,
-        issuer.codex.codex_id()
-    );
-    let _ = fs::remove_file(FILE);
-    issuer
-        .save(FILE)
-        .expect("unable to save the issuer to the file");
-}
+pub mod nfa;

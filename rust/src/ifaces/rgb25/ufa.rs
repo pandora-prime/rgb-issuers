@@ -20,10 +20,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use crate::{
-    scripts, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER, G_DETAILS, G_NAME, G_PRECISION,
-    G_SUPPLY, O_AMOUNT, PANDORA,
-};
 use amplify::num::u256;
 use hypersonic::{
     Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
@@ -33,6 +29,11 @@ use ifaces::{CommonTypes, Rgb21Types};
 use strict_types::SemId;
 use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
+
+use crate::{
+    scripts, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER, G_DETAILS, G_NAME, G_PRECISION,
+    G_SUPPLY, O_AMOUNT, PANDORA,
+};
 
 pub const VERIFIER_GENESIS: u16 = 0;
 pub const VERIFIER_TRANSFER: u16 = 1;
@@ -54,7 +55,7 @@ pub fn issuer() -> Issuer {
 fn codex() -> Codex {
     let lib = scripts::fungible();
     let codex = Codex {
-        name: tiny_s!("Divisible unique asset"),
+        name: tiny_s!("Unique Fungible Asset"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,

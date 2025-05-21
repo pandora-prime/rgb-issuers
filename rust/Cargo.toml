@@ -9,8 +9,8 @@ name = "fna"
 path = "src/bin/rgb20/fna.rs"
 
 [[bin]]
-name = "uda"
-path = "src/bin/rgb21/uda.rs"
+name = "nfa"
+path = "src/bin/rgb21/nfa.rs"
 
 [[bin]]
 name = "uac"
@@ -21,8 +21,8 @@ name = "fac"
 path = "src/bin/rgb21/fac.rs"
 
 [[bin]]
-name = "dua"
-path = "src/bin/rgb25/dua.rs"
+name = "ufa"
+path = "src/bin/rgb25/ufa.rs"
 
 [lib]
 

@@ -21,11 +21,55 @@
 // the License.
 
 use amplify::num::u256;
-use hypersonic::{Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor, StateArithm, StateBuilder, StateConvertor};
+use hypersonic::{
+    Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
+    RawConvertor, StateArithm, StateBuilder, StateConvertor,
+};
 use ifaces::Rgb21Types;
 use strict_types::SemId;
+use zkaluvm::alu::CoreConfig;
+use zkaluvm::FIELD_ORDER_SECP;
 
-use crate::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT, PANDORA};
+use crate::{
+    scripts, shared_lib, FN_RGB21_ISSUE, FN_UDA_TRANSFER, G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY,
+    O_AMOUNT, PANDORA,
+};
+
+pub const VERIFIER_GENESIS: u16 = 0;
+pub const VERIFIER_TRANSFER: u16 = 1;
+
+pub fn issuer() -> Issuer {
+    let lib = scripts::unique();
+    let types = Rgb21Types::new();
+    let codex = codex();
+    let api = api(codex.codex_id());
+
+    Issuer::new(
+        codex,
+        api,
+        [shared_lib().into_lib(), lib.into_lib()],
+        types.type_system(),
+    )
+}
+
+fn codex() -> Codex {
+    let lib = scripts::unique();
+    let codex = Codex {
+        name: tiny_s!("Non-Fungible Asset"),
+        developer: Identity::from(PANDORA),
+        version: default!(),
+        timestamp: 1732529307,
+        field_order: FIELD_ORDER_SECP,
+        input_config: CoreConfig::default(),
+        verification_config: CoreConfig::default(),
+        verifiers: tiny_bmap! {
+            0 => lib.routine(FN_RGB21_ISSUE),
+            1 => lib.routine(FN_UDA_TRANSFER),
+            0xFF => lib.routine(FN_UDA_TRANSFER), // Blank transition is just an ordinary self-transfer
+        },
+    };
+    codex
+}
 
 pub fn api(codex_id: CodexId) -> Api {
     let types = Rgb21Types::new();

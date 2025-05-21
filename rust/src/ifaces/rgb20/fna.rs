@@ -20,8 +20,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use crate::scripts::{shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
-use crate::{scripts, G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT, PANDORA};
 use amplify::num::u256;
 use hypersonic::{
     Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
@@ -31,6 +29,9 @@ use ifaces::CommonTypes;
 use strict_types::SemId;
 use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
+
+use crate::scripts::{shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
+use crate::{scripts, G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT, PANDORA};
 
 pub const VERIFIER_GENESIS: u16 = 0;
 pub const VERIFIER_TRANSFER: u16 = 1;
