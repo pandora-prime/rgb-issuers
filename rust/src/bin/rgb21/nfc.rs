@@ -20,8 +20,21 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-pub mod nfa;
-pub mod nfc;
-mod shared;
+use issuers::rgb21::nfc;
+use std::fs;
 
-pub use shared::*;
+fn main() {
+    const FILE: &str = "compiled/RGB21-NFTCollection.issuer";
+
+    let issuer = nfc::issuer();
+    println!(
+        "Created issuer '{}' with id {}",
+        issuer.codex.name,
+        issuer.codex.codex_id()
+    );
+    let _ = fs::remove_file(FILE);
+
+    issuer
+        .save(FILE)
+        .expect("unable to save the issuer to the file");
+}

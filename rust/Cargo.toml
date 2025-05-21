@@ -13,8 +13,8 @@ name = "nfa"
 path = "src/bin/rgb21/nfa.rs"
 
 [[bin]]
-name = "uac"
-path = "src/bin/rgb21/uac.rs"
+name = "nfc"
+path = "src/bin/rgb21/nfc.rs"
 
 [[bin]]
 name = "fac"

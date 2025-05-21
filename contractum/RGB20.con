@@ -2,45 +2,44 @@ import RGBContract: *
 
 -- Interface gets compiled into an API for each specific contract
 interface RGB20
-    -- non-validated global state is added with comma
     pub ticker: Ticker
     pub name: AssetName
     pub precision: Precision
-    pub? terms: ContractText -- some as @maybe
-    pub+ issued: Amount -- same as @many
-    pub* burned: Amount -- same as @any
+    pub terms?: ContractText -- some as @maybe
+    pub [issued]+: Amount -- same as @many
+    pub [burned]*: Amount -- same as @any
 
-    read knownIssued: known [issued]+ -> Amount := known.sum
-    read knownBurned: known [burned]+ -> Amount := known.sum ?? 0
+    read knownIssued: known [issued+] -> Amount := known.sum
+    read knownBurned: known [burned+] -> Amount := known.sum ?? 0
 
-    read? totalIssued: issues [issued]+, ops [inflate]* -> Amount?
+    read totalIssued?: issues [issued+], ops [inflate*] -> Amount?
         ops.flatMap(.\ $0.(owned "issueRight").all(.\ $0.spentBy.operation \in ops) ?? ~
         ---- Alt form (AGDA- and Lean-style):
-        -- let spendingOps = { spender | \forall operation \in ops, \forall spender \in operation.spentBy }
-        -- let unknown = { operation | \forall operation \in spendingOps : operation ~\in ops }
+        -- let spendingOps = { spender <| \forall operation \in ops, \forall spender \in operation.spentBy }
+        -- let unknown = { operation <| \forall operation \in spendingOps : operation ~\in ops }
         -- unknown.is_empty ?? ~
         issues.sum
 
-    read? totalBurned: burned [burned]+, ops [burn]* -> Amount?
+    read totalBurned?: burned [burned+], ops [burn*] -> Amount?
         ops.all (.\ $0.(owned "issueRight").all (.\ $0.spentBy.operation \in ops)) ?? ~
         burned.sum
 
     read knownCirculating: Amount := knownIssued - knownBurned
-    read? totalCirculating: Amount? := totalIssued - totalBurned
+    read totalCirculating?: Amount? := totalIssued? - totalBurned? ?? ~
 
-    owned? renominateRight
-    owned* issueRight: Amount
-    owned* balance: Amount
+    owned renominateRight?
+    owned [issueRight*]: Amount
+    owned [balance*]: Amount
 
     genesis issue: ticker, name, precision, terms?, supply issued
-                 -> beneficiary [balance]*, issueRight*, renominateRight?
+                 -> beneficiary [balance*], issueRight*, renominateRight?
         supply =?= beneficiary.sum !! sumMismatch
 
-    op? inflate: using [issueRight]+ -> next [issueRight]*, beneficiary [balance]*, new issued
+    op inflate?: using [issueRight+] -> next [issueRight*], beneficiary [balance*], new issued
 
-    op? burn: using [issueRight]+ -> next [issueRight]*, beneficiary [balance]*, new burned
+    op burn?: using [issueRight+] -> next [issueRight*], beneficiary [balance*], new burned
 
-    op? renominate: using renominateRight
+    op renominate?: using renominateRight
         -> new renominateRight?, ticker, name, terms?, precision
 
     op transfer: from [balance+] -> to [balance*]

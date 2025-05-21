@@ -1,0 +1,68 @@
+import RGBContract: *
+
+data Attachment        : type MediaType, digest [Byte ^ 32]
+data AttachmentName    : [Std.AsciiPrintable ^ 1..14.h]
+data AttachmentType    : id U8, name AttachmentName
+data EmbeddedMedia     : type MediaType, data [Byte]
+
+data Fe256Align128     : CommitVerify.ReservedBytes14
+data Fe256Align16      : CommitVerify.ReservedBytes28
+data Fe256Align32      : CommitVerify.ReservedBytes26
+data Fe256Align64      : CommitVerify.ReservedBytes22
+data Fe256Align8       : CommitVerify.ReservedBytes29
+
+data MediaRegName      : Std.AlphaSmall, [MimeChar ^ ..3F.h]
+data MediaType         : type MediaRegName
+                       , subtype MediaRegName?
+                       , charset MediaRegName?
+data MimeChar          : excl#33 | hash#35 | dollar | amp#38
+                       | plus#43 | dash#45 | dot | zero#48
+                       | one | two | three | four
+                       | five | six | seven | eight
+                       | nine | caret#94 | lodash | a#97
+                       | b | c | d | e
+                       | f | g | h | i
+                       | j | k | l | m
+                       | n | o | p | q
+                       | r | s | t | u
+                       | v | w | x | y
+                       | z
+
+
+data Nft               : tokenIndex TokenIndex
+                       , align Fe256Align32
+                       , fraction OwnedFraction
+
+data NftEngraving      : appliedTo TokenIndex, content EmbeddedMedia
+
+data NftSpec           : index TokenIndex
+                       , ticker RGBContract.Ticker?
+                       , name RGBContract.AssetName?
+                       , details RGBContract.Details?
+                       , preview EmbeddedMedia?
+                       , media Attachment?
+                       , attachments {U8 -> ^ ..14.h Attachment}
+                       , reserves ProofOfReserves?
+
+data OwnedFraction     : U64
+
+data ProofOfReserves   : utxo Bitcoin.Outpoint, proof [Byte]
+
+data TokenIndex        : U32
+
+interface RGB21
+    pub name: AssetName
+    pub details: () -> AssetDetails -- non-validated global state is added after ->
+    pub fractions: OwnedFraction
+    pub {token+}: NFT -> NFTSpec
+
+    owned [fractions*]: NFT
+
+    genesis issue: name, details, fractions
+                 -> beneficiary [fractions*]
+        (fractions.sum ?? 1) =?= 1 !! incompleteFractions
+
+    op transfer: from [balance+] -> to [balance*]
+        sum.from =?= to.sum !! inflation
+
+    error incompleteFractions := "the sum of fractions is not equal to one"
