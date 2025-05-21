@@ -20,8 +20,9 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use issuers::rgb25::ufa;
 use std::fs;
+
+use issuers::rgb25::ufa;
 
 fn main() {
     const FILE: &str = "compiled/RGB25-UniqueFungible.issuer";

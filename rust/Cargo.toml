@@ -17,8 +17,8 @@ name = "nfc"
 path = "src/bin/rgb21/nfc.rs"
 
 [[bin]]
-name = "fac"
-path = "src/bin/rgb21/fac.rs"
+name = "dnc"
+path = "src/bin/rgb21/dnc.rs"
 
 [[bin]]
 name = "ufa"

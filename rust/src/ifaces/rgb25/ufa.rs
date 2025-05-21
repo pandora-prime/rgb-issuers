@@ -31,15 +31,14 @@ use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
 
 use crate::{
-    scripts, shared_lib, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER, G_DETAILS, G_NAME, G_PRECISION,
-    G_SUPPLY, O_AMOUNT, PANDORA,
+    scripts, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER, G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY,
+    O_AMOUNT, PANDORA,
 };
 
 pub const VERIFIER_GENESIS: u16 = 0;
 pub const VERIFIER_TRANSFER: u16 = 1;
 
 pub fn issuer() -> Issuer {
-    let lib = scripts::fungible();
     let types = CommonTypes::new();
     let codex = codex();
     let api = api(codex.codex_id());
@@ -47,7 +46,10 @@ pub fn issuer() -> Issuer {
     Issuer::new(
         codex,
         api,
-        [shared_lib().into_lib(), lib.into_lib()],
+        [
+            scripts::shared_lib().into_lib(),
+            scripts::fungible().into_lib(),
+        ],
         types.type_system(),
     )
 }

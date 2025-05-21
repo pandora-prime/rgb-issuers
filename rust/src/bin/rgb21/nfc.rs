@@ -20,8 +20,9 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use issuers::rgb21::nfc;
 use std::fs;
+
+use issuers::rgb21::nfc;
 
 fn main() {
     const FILE: &str = "compiled/RGB21-NFTCollection.issuer";

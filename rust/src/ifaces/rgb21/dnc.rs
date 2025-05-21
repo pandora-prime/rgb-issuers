@@ -20,21 +20,35 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-#[macro_use]
-extern crate amplify;
-
 use hypersonic::{Codex, Identity, Issuer};
 use ifaces::Rgb21Types;
-use issuers::scripts::{self, shared_lib, unique, FN_FAC_TRANSFER, FN_RGB21_ISSUE};
-use issuers::PANDORA;
-use std::fs;
-use zkaluvm::alu::{CoreConfig, Lib};
+use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
 
-fn codex() -> (Codex, Lib) {
+use super::{api, VERIFIER_GENESIS, VERIFIER_TRANSFER};
+use crate::{scripts, FN_FAC_TRANSFER, FN_RGB21_ISSUE, PANDORA};
+
+pub fn issuer() -> Issuer {
+    let types = Rgb21Types::new();
+    let codex = codex();
+    let api = api(codex.codex_id());
+
+    Issuer::new(
+        codex,
+        api,
+        [
+            scripts::shared_lib().into_lib(),
+            scripts::unique().into_lib(),
+            scripts::fractionable().into_lib(),
+        ],
+        types.type_system(),
+    )
+}
+
+fn codex() -> Codex {
     let lib = scripts::fractionable();
     let codex = Codex {
-        name: tiny_s!("Fractional asset collection"),
+        name: tiny_s!("Divisible Non-fungible Asset Collection"),
         developer: Identity::from(PANDORA),
         version: default!(),
         timestamp: 1732529307,
@@ -42,35 +56,9 @@ fn codex() -> (Codex, Lib) {
         input_config: CoreConfig::default(),
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
-            0 => lib.routine(FN_RGB21_ISSUE),
-            1 => lib.routine(FN_FAC_TRANSFER),
-            0xFF => lib.routine(FN_FAC_TRANSFER), // Blank transition is just an ordinary self-transfer
+            VERIFIER_GENESIS => lib.routine(FN_RGB21_ISSUE),
+            VERIFIER_TRANSFER => lib.routine(FN_FAC_TRANSFER),
         },
     };
-    (codex, lib.into_lib())
-}
-
-fn main() {
-    const FILE: &str = "compiled/RGB21-FAC.issuer";
-
-    let types = Rgb21Types::new();
-    let (codex, lib) = codex();
-    let api = issuers::ifaces::rgb21::api(codex.codex_id());
-
-    // Creating DAO with three participants
-    let issuer = Issuer::new(
-        codex,
-        api,
-        [shared_lib().into_lib(), unique().into_lib(), lib],
-        types.type_system(),
-    );
-    println!(
-        "Created issuer '{}' with id {}",
-        issuer.codex.name,
-        issuer.codex.codex_id()
-    );
-    let _ = fs::remove_file(FILE);
-    issuer
-        .save(FILE)
-        .expect("unable to save the issuer to the file");
+    codex
 }
