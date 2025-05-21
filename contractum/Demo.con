@@ -1,0 +1,11 @@
+contract USDT: FNA
+    const ISSUED := 1_000_000
+    owner ISSUER := 6b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc.h
+
+    genesis issue: "USDT" ticker, "US Tether" name, ISSUED issued -> beneficiary [(ISSUED, ISSUER)]
+
+script Demo: USDT
+    owner ALICE := 6b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc.h
+    owner CHANGE1 := b41138d01924e2824b9f98dc5f97522642035e6715db0d1c16a9409101513bc.h
+
+    USDT.transfer: from [USDT.ISSUER] -> to [(100, ALICE), (_, CHANGE1)]

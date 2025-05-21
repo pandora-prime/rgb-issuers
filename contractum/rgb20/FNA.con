@@ -1,0 +1,12 @@
+issuer FNA: RGB20
+    name := "Fungible non-inflatable asset"
+
+    pub ticker: Ticker
+    pub name: AssetName
+    pub precision: Precision
+    pub issued: Amount -- same as @oneOrMany
+
+    owned+ balance: Amount
+
+    op transfer: from [balance+] -> to [balance*]
+        super.transfer
