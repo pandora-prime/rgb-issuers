@@ -30,7 +30,7 @@ pub use collection::{collection, FN_FAC_TRANSFER};
 pub use dividable::{fractionable, FN_UAC_TRANSFER};
 pub use fungible::{fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
 pub use shared::shared_lib;
-pub use unique::{unique, FN_UDA_TRANSFER};
+pub use unique::{unique, FN_UNIQUE_TRANSFER};
 
 pub(self) use shared::{FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
 pub(self) use unique::{FN_GLOBAL_VERIFY_TOKEN, FN_OWNED_TOKEN};

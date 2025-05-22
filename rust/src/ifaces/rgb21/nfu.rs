@@ -26,7 +26,7 @@ use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
 
 use super::{api, VERIFIER_GENESIS, VERIFIER_TRANSFER};
-use crate::{scripts, FN_RGB21_ISSUE, FN_UDA_TRANSFER, PANDORA};
+use crate::{scripts, FN_RGB21_ISSUE, FN_UNIQUE_TRANSFER, PANDORA};
 
 pub fn issuer() -> Issuer {
     let types = Rgb21Types::new();
@@ -56,7 +56,7 @@ fn codex() -> Codex {
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
             VERIFIER_GENESIS => lib.routine(FN_RGB21_ISSUE),
-            VERIFIER_TRANSFER => lib.routine(FN_UDA_TRANSFER),
+            VERIFIER_TRANSFER => lib.routine(FN_UNIQUE_TRANSFER),
         },
     };
     codex

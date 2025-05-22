@@ -26,24 +26,25 @@ use zkaluvm::alu::CompiledLib;
 use super::{shared_lib, FN_ASSET_SPEC};
 use crate::{G_NFT, O_AMOUNT};
 
-pub const FN_UDA_TRANSFER: u16 = 3;
+pub const FN_UNIQUE_TRANSFER: u16 = 3;
 
 pub(super) const FN_GLOBAL_VERIFY_TOKEN: u16 = 1;
 pub(super) const FN_OWNED_TOKEN: u16 = 2;
+pub(super) const FN_GLOBAL_ABSENT: u16 = 4;
 
 pub fn unique() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
-    const VERIFY_GLOBAL_TOKEN: u16 = 4;
-    const VERIFY_IN_TOKEN: u16 = 5;
-    const VERIFY_OUT_TOKEN: u16 = 6;
-    const VERIFY_TOKEN: u16 = 7;
+    const VERIFY_GLOBAL_TOKEN: u16 = 5;
+    const VERIFY_IN_TOKEN: u16 = 6;
+    const VERIFY_OUT_TOKEN: u16 = 7;
+    const VERIFY_TOKEN: u16 = 8;
 
     let mut code = uasm! {
-      // Verification of unique token issue
-      // Args: no
-      // Returns: nothing
-      proc FN_RGB21_ISSUE:
+    // Verification of unique token issue
+    // Args: no
+    // Returns: nothing
+    proc FN_RGB21_ISSUE:
         call    shared, FN_ASSET_SPEC; // Call asset check.
         // Check that there is no fractionality
         put     EH, 1;
@@ -54,11 +55,12 @@ pub fn unique() -> CompiledLib {
         call    VERIFY_OUT_TOKEN;   // Verify the output token
         ret;
 
-      // Verify token spec
-      // We export this procedure to be used in other libraries
-      // Args: no
-      // Returns: token id in `E3`
-      proc FN_GLOBAL_VERIFY_TOKEN:
+    // TODO: Put FN_GLOBAL_VERIFY_TOKEN and FN_OWNED_TOKEN into a separate library
+    // Verify token spec
+    // We export this procedure to be used in other libraries
+    // Args: no
+    // Returns: token id in `E3`
+    proc FN_GLOBAL_VERIFY_TOKEN:
         put     EH, G_NFT;      // Set E7 to field element representing token data
         eq      EA, EH;         // It must have the correct state type
         chk     CO;             // Or fail otherwise
@@ -73,11 +75,11 @@ pub fn unique() -> CompiledLib {
         chk     CO;             // fail if not
         ret;
 
-      // Get token allocation
-      // We export this procedure to be used in other libraries
-      // Args: none
-      // Returns: token id in `E3`, fractions in `E4`
-      proc FN_OWNED_TOKEN:
+    // Get token allocation
+    // We export this procedure to be used in other libraries
+    // Args: none
+    // Returns: token id in `E3`, fractions in `E4`
+    proc FN_OWNED_TOKEN:
         put     EH, O_AMOUNT;   // Set E7 to field element representing token data
         eq      EA, EH;         // It must have the correct state type
         chk     CO;             // Or fail otherwise
@@ -92,10 +94,11 @@ pub fn unique() -> CompiledLib {
         chk     CO;             // fail if not
         ret;
 
-      // Verification of unique token transfer
-      // Args: no
-      // Returns: nothing
-      proc FN_UDA_TRANSFER:
+    // Verification of unique token transfer
+    // Args: no
+    // Returns: nothing
+    proc FN_UNIQUE_TRANSFER:
+        call    FN_GLOBAL_ABSENT;
         call    VERIFY_IN_TOKEN;
         mov     E5, E3;         // Save the token id
         call    VERIFY_OUT_TOKEN;
@@ -103,7 +106,23 @@ pub fn unique() -> CompiledLib {
         chk     CO;
         ret;
 
-      routine VERIFY_GLOBAL_TOKEN:
+    // Get token allocation
+    // We export this procedure to be used in other libraries
+    // Args: none
+    // Returns: nothing
+    // Side-effects: reset input and output global state iterators
+    proc FN_GLOBAL_ABSENT:
+        rsti    immutable;
+        cknxi   immutable;
+        not     CO;
+        chk     CO;
+        rsto    immutable;
+        cknxo   immutable;
+        not     CO;
+        chk     CO;
+        ret;
+
+    routine VERIFY_GLOBAL_TOKEN:
         ldo     immutable;      // Read the fourth global state: token information
         call    FN_GLOBAL_VERIFY_TOKEN;// Verify token spec
         cknxo   immutable;      // Verify there are no more tokens
@@ -111,7 +130,7 @@ pub fn unique() -> CompiledLib {
         chk     CO;
         ret;
 
-      routine VERIFY_IN_TOKEN:
+    routine VERIFY_IN_TOKEN:
         rsti    destructible;   // Restart the state iterator
         ldi     destructible;   // Read input token information
         chk     CO;
@@ -121,7 +140,7 @@ pub fn unique() -> CompiledLib {
         chk     CO;
         ret;
 
-      routine VERIFY_OUT_TOKEN:
+    routine VERIFY_OUT_TOKEN:
         rsto    destructible;   // Restart the state iterator
         ldo     destructible;   // Read input token information
         chk     CO;
@@ -131,7 +150,7 @@ pub fn unique() -> CompiledLib {
         chk     CO;
         ret;
 
-      routine VERIFY_TOKEN:
+    routine VERIFY_TOKEN:
         call    FN_OWNED_TOKEN; // Get token fractions
         put     EH, 1;
         eq      E4, EH;         // Check there is no fractionality
@@ -156,6 +175,28 @@ mod tests {
         halt: true,
         complexity_lim: Some(580_000_000),
     };
+
+    const TOKEN_ID: u64 = 0;
+    const TOKEN_FRACTIONS: u64 = 1_u64;
+
+    macro_rules! unique_token_in {
+        () => {
+            StateValue::Triple {
+                first: O_AMOUNT.into(),
+                second: TOKEN_ID.into(),
+                third: TOKEN_FRACTIONS.into(),
+            }
+        };
+    }
+    macro_rules! unique_token_out {
+        () => {
+            StateCell {
+                data: unique_token_in!(),
+                auth: AuthToken::strict_dumb(),
+                lock: None,
+            }
+        };
+    }
 
     fn harness() -> (CompiledLib, Vm<Instr<LibId>>, impl Fn(LibId) -> Option<Lib>) {
         let vm = Vm::<Instr<LibId>>::with(
@@ -199,37 +240,27 @@ mod tests {
 
     #[test]
     fn genesis_missing_globals() {
-        const TOKEN_ID: u64 = 0;
-        const SUPPLY: u64 = 1000_u64;
         let mut context = VmContext {
             destructible_input: &[],
             immutable_input: &[],
-            destructible_output: &[StateCell {
-                data: StateValue::Triple {
-                    first: O_AMOUNT.into(),
-                    second: TOKEN_ID.into(),
-                    third: SUPPLY.into(),
-                },
-                auth: AuthToken::strict_dumb(),
-                lock: None,
-            }],
+            destructible_output: &[unique_token_out!()],
             immutable_output: &[],
         };
         let globals = [
             &[
                 StateData::new(G_NAME, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
-                StateData::new(G_SUPPLY, SUPPLY),
+                StateData::new(G_SUPPLY, TOKEN_FRACTIONS),
             ][..],
             &[
                 StateData::new(G_NAME, 0u8),
                 StateData::new(G_PRECISION, 18_u8),
-                StateData::new(G_SUPPLY, SUPPLY),
+                StateData::new(G_SUPPLY, TOKEN_FRACTIONS),
             ],
             &[
                 StateData::new(G_NAME, 0u8),
                 StateData::new(G_DETAILS, 0u8),
-                StateData::new(G_SUPPLY, SUPPLY),
+                StateData::new(G_SUPPLY, TOKEN_FRACTIONS),
             ],
             &[
                 StateData::new(G_NAME, 0u8),
@@ -270,8 +301,6 @@ mod tests {
 
     #[test]
     fn genesis_supply_mismatch() {
-        const TOKEN_ID: u64 = 0;
-        const SUPPLY: u64 = 1_u64;
         let context = VmContext {
             destructible_input: &[],
             immutable_input: &[],
@@ -279,7 +308,7 @@ mod tests {
                 data: StateValue::Triple {
                     first: O_AMOUNT.into(),
                     second: TOKEN_ID.into(),
-                    third: SUPPLY.into(),
+                    third: TOKEN_FRACTIONS.into(),
                 },
                 auth: AuthToken::strict_dumb(),
                 lock: None,
@@ -288,7 +317,7 @@ mod tests {
                 StateData::new(G_NAME, 0u8),
                 StateData::new(G_DETAILS, 0u8),
                 StateData::new(G_PRECISION, 1_u8),
-                StateData::new(G_SUPPLY, SUPPLY + 1000_u64),
+                StateData::new(G_SUPPLY, TOKEN_FRACTIONS + 1000_u64),
             ],
         };
         let (lib, mut vm, resolver) = harness();
@@ -300,7 +329,6 @@ mod tests {
 
     #[test]
     fn genesis_nonunique() {
-        const TOKEN_ID: u64 = 0;
         const SUPPLY: u64 = 100_u64;
         let context = VmContext {
             destructible_input: &[],
@@ -330,30 +358,193 @@ mod tests {
 
     #[test]
     fn genesis_correct() {
-        const TOKEN_ID: u64 = 0;
-        const SUPPLY: u64 = 1_u64;
         let context = VmContext {
             destructible_input: &[],
             immutable_input: &[],
-            destructible_output: &[StateCell {
-                data: StateValue::Triple {
-                    first: O_AMOUNT.into(),
-                    second: TOKEN_ID.into(),
-                    third: SUPPLY.into(),
-                },
-                auth: AuthToken::strict_dumb(),
-                lock: None,
-            }],
+            destructible_output: &[unique_token_out!()],
             immutable_output: &[
                 StateData::new(G_DETAILS, 0u8),
                 StateData::new(G_NAME, 0u8),
-                StateData::new(G_PRECISION, SUPPLY),
+                StateData::new(G_PRECISION, TOKEN_FRACTIONS),
                 StateData::new(G_SUPPLY, TOKEN_ID),
             ],
         };
         let (lib, mut vm, resolver) = harness();
         let res = vm
             .exec(lib.routine(FN_RGB21_ISSUE), &context, resolver)
+            .is_ok();
+        assert!(res);
+    }
+
+    #[test]
+    fn transfer_contains_globals() {
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[StateData::new(G_DETAILS, 0u8)],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[StateValue::None],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_no_input() {
+        let context = VmContext {
+            destructible_input: &[],
+            immutable_input: &[],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_no_output() {
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[],
+            destructible_output: &[],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_wrong_in_id() {
+        let context = VmContext {
+            destructible_input: &[StateValue::Triple {
+                first: O_AMOUNT.into(),
+                second: (TOKEN_ID + 1).into(),
+                third: TOKEN_FRACTIONS.into(),
+            }],
+            immutable_input: &[],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_wrong_in_fractons() {
+        let context = VmContext {
+            destructible_input: &[StateValue::Triple {
+                first: O_AMOUNT.into(),
+                second: TOKEN_ID.into(),
+                third: (TOKEN_FRACTIONS + 1).into(),
+            }],
+            immutable_input: &[],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_wrong_out_id() {
+        let mut token = unique_token_out!();
+        token.data = StateValue::Triple {
+            first: O_AMOUNT.into(),
+            second: (TOKEN_ID + 1).into(),
+            third: TOKEN_FRACTIONS.into(),
+        };
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[],
+            destructible_output: &[token],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_wrong_out_fractons() {
+        let mut token = unique_token_out!();
+        token.data = StateValue::Triple {
+            first: O_AMOUNT.into(),
+            second: TOKEN_ID.into(),
+            third: (TOKEN_FRACTIONS + 1).into(),
+        };
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[],
+            destructible_output: &[token],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_wrong_inout_fractons() {
+        let mut token = unique_token_out!();
+        token.data = StateValue::Triple {
+            first: O_AMOUNT.into(),
+            second: TOKEN_ID.into(),
+            third: (TOKEN_FRACTIONS + 1).into(),
+        };
+        let context = VmContext {
+            destructible_input: &[token.data],
+            immutable_input: &[],
+            destructible_output: &[token],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
+            .is_ok();
+        assert!(!res);
+    }
+
+    #[test]
+    fn transfer_correct() {
+        let context = VmContext {
+            destructible_input: &[unique_token_in!()],
+            immutable_input: &[],
+            destructible_output: &[unique_token_out!()],
+            immutable_output: &[],
+        };
+        let (lib, mut vm, resolver) = harness();
+        let res = vm
+            .exec(lib.routine(FN_UNIQUE_TRANSFER), &context, resolver)
             .is_ok();
         assert!(res);
     }
