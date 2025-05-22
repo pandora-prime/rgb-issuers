@@ -45,7 +45,7 @@ use crate::{G_DETAILS, G_NAME, G_PRECISION, G_TICKER, O_AMOUNT};
 /// # Reset registers
 ///
 /// `E1`, `EA`, `EC`-`ED`
-pub const FN_ASSET_SPEC: u16 = 0;
+pub(super) const FN_ASSET_SPEC: u16 = 0;
 
 /// Sum input owned state
 ///
@@ -62,7 +62,7 @@ pub const FN_ASSET_SPEC: u16 = 0;
 /// # Reset registers
 ///
 /// `EA`-`ED`, `E8`.
-pub const FN_SUM_INPUTS: u16 = 1;
+pub(super) const FN_SUM_INPUTS: u16 = 1;
 
 /// Sum output owned state
 ///
@@ -79,7 +79,7 @@ pub const FN_SUM_INPUTS: u16 = 1;
 /// # Reset registers
 ///
 /// `EA`-`ED`, `E8`.
-pub const FN_SUM_OUTPUTS: u16 = 3;
+pub(super) const FN_SUM_OUTPUTS: u16 = 3;
 
 pub(self) const LOOP_INPUTS: u16 = 2;
 pub(self) const LOOP_OUTPUTS: u16 = 4;
@@ -100,21 +100,23 @@ pub fn shared_lib() -> CompiledLib {
 
         ldo     immutable       ;// Read the first global state - ticker in RGB20, details in RGB21/25
         chk     CO              ;// - it must exist
-        put     E2, G_TICKER    ;// - set E1 to the field element representing owned value (also global asset name)
-        eq      EA, E2          ;// - it must have the correct state type
+        put     EH, G_TICKER    ;// - set E1 to the field element representing owned value (also global asset name)
+        eq      EA, EH          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
         ldo     immutable       ;// Read the second global state - asset name
         chk     CO              ;// - it must exist
-        put     E2, G_NAME      ;// - set E1 to a field element representing global asset ticker (or details)
-        eq      EA, E2          ;// - it must have the correct state type
+        put     EH, G_NAME      ;// - set E1 to a field element representing global asset ticker (or details)
+        eq      EA, EH          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
 
         ldo     immutable       ;// The third global state - precision
         chk     CO              ;// - it must exist
-        put     E2, G_PRECISION ;// - set E1 to field element representing global fractions
-        eq      EA, E2          ;// - it must have the correct state type
+        put     EH, G_PRECISION ;// - set E1 to a field element representing global fractions
+        eq      EA, EH          ;// - it must have the correct state type
         chk     CO              ;// - - or fail otherwise
+        test    EB              ;// - there must be a value for the precision
+        chk     CO              ;// - or fail otherwise
         test    EC              ;// - there must be no other field elements than in EC in the precision
         not     CO;
         chk     CO              ;// - or fail otherwise

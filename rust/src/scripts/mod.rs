@@ -20,13 +20,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+mod collection;
+mod dividable;
 mod fungible;
-mod non_fungible;
 mod shared;
+mod unique;
 
+pub use collection::{collection, FN_FAC_TRANSFER};
+pub use dividable::{fractionable, FN_UAC_TRANSFER};
 pub use fungible::{fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
-pub use non_fungible::{
-    collection, fractionable, unique, FN_FAC_TRANSFER, FN_RGB21_ISSUE, FN_UAC_TRANSFER,
-    FN_UDA_TRANSFER,
-};
-pub use shared::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
+pub use shared::shared_lib;
+pub use unique::{unique, FN_UDA_TRANSFER};
+
+pub(self) use shared::{FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
+pub(self) use unique::{FN_GLOBAL_VERIFY_TOKEN, FN_OWNED_TOKEN};
+
+pub const FN_RGB21_ISSUE: u16 = 0; // In all libs it must be the first method
