@@ -24,7 +24,7 @@ use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
 use super::{shared_lib, unique, FN_ASSET_SPEC, FN_GLOBAL_VERIFY_TOKEN};
-use crate::{fractionable, O_AMOUNT};
+use crate::{divisible, O_AMOUNT};
 
 pub const FN_FAC_TRANSFER: u16 = 6;
 pub const FN_UNIQUE: u16 = 3;
@@ -43,10 +43,10 @@ pub fn collection() -> CompiledLib {
         call    shared, FN_ASSET_SPEC; // Check asset specification
 
         // Check there is no fractionality
-        put     E2, 1;
-        eq      EB, E2;         // EB still contains fractions from asset spec
+        put     EH, 1;
+        eq      E4, EH;         // `E4` contains fractions from asset spec
         chk     CO;
-        clr     E2;
+        clr     EH;
 
         call    CHECK_TOKENS;
         call    FN_UNIQUE;
@@ -133,14 +133,14 @@ pub fn collection() -> CompiledLib {
         ret;
     };
 
-    CompiledLib::compile(&mut code, &[&shared_lib(), &unique(), &fractionable()])
+    CompiledLib::compile(&mut code, &[&shared_lib(), &unique(), &divisible()])
         .unwrap_or_else(|err| panic!("Invalid script: {err}"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scripts::fractionable;
+    use crate::scripts::divisible;
     use hypersonic::Instr;
     use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
     use zkaluvm::{GfaConfig, FIELD_ORDER_SECP};
@@ -160,7 +160,7 @@ mod tests {
         fn resolver(id: LibId) -> Option<Lib> {
             let lib = collection();
             let unique = unique();
-            let fractionable = fractionable();
+            let fractionable = divisible();
             let shared = shared_lib();
             if lib.as_lib().lib_id() == id {
                 return Some(lib.into_lib());

@@ -45,7 +45,7 @@ UDA: Unique fungible asset
 | RGB20    | FBA  | 2025 H2  | Partial | -     |
 | RGB20    | FRA  | 2025     | Partial | -     |
 | RGB25    | UFA  | Ready    | Full    | No    |
-| RGB21    | NFU  | Ready    | No      | No    |
+| RGB21    | NFU  | Ready    | Full    | No    |
 | RGB21    | NFC  | 2025 Jul | Partial | No    |
 | RGB21    | NFE  | 2025 H2  | -       | -     |
 | RGB21    | NDU  | 2025 H2  | -       | -     |

@@ -20,64 +20,168 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use super::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
-use crate::G_SUPPLY;
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
+
+use super::{shared_lib, FN_ASSET_SPEC, FN_GLOBAL_ABSENT};
+use crate::{G_SUPPLY, O_AMOUNT};
 
 pub const FN_FUNGIBLE_ISSUE: u16 = 0;
 pub const FN_FUNGIBLE_TRANSFER: u16 = 1;
 
+/// Sum input owned state
+///
+/// # Input
+///
+/// None
+///
+/// # Output
+///
+/// `E2` contains the sum of inputs.
+///
+/// # Reset registers
+///
+/// `EA`-`ED`.
+///
+/// # Side effects
+///
+/// Extinguishes the input destructible state iterator
+pub const FN_FUNGIBLE_SUM_INPUTS: u16 = 2;
+
+/// Sum output owned state
+///
+/// # Input
+///
+/// None
+///
+/// # Output
+///
+/// `E3` contains the sum of outputs.
+///
+/// # Reset registers
+///
+/// `EA`-`ED`, `E8`.
+///
+/// # Side effects
+///
+/// Extinguishes the output destructible state iterator
+pub const FN_FUNGIBLE_SUM_OUTPUTS: u16 = 4;
+
 pub fn fungible() -> CompiledLib {
+    const LOOP_INPUTS: u16 = 3;
+    const LOOP_OUTPUTS: u16 = 5;
+
     let shared = shared_lib().into_lib().lib_id();
 
     let mut code = uasm! {
      routine FN_FUNGIBLE_ISSUE:
-        call    shared, FN_ASSET_SPEC   ;// Call asset check
-        fits    EB, 8.bits      ;// The precision must fit into a byte
-        chk     CO              ;// - or fail otherwise
+        call    shared, FN_ASSET_SPEC;// Call asset check
+        fits    E4, 8.bits;     // The precision must fit into a byte
+        chk     CO;             // - or fail otherwise
 
         // Validate circulating supply
-        ldo     immutable       ;// Read last global state - circulating supply
-        chk     CO              ;// It must exist
-        put     E8, G_SUPPLY    ;// Load supply type
-        eq      EA, E8          ;// It must have a correct state type
-        chk     CO              ;// Or fail otherwise
-        test    EB              ;// It must be set
-        chk     CO              ;// Or we should fail
-        mov     E2, EB          ;// Save supply
-        test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need the test to fail)
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need the test to fail)
-        chk     CO              ;// fail if not
-        put     E3, 0           ;// E3 will contain the sum of outputs
-        clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
-        call    shared, FN_SUM_OUTPUTS;// Compute a sum of outputs
-        eq      E2, E3          ;// check that circulating supply equals to the sum of outputs
-        chk     CO              ;// fail if not
+        ldo     immutable;      // Read last global state - circulating supply
+        chk     CO;             // It must exist
+        put     E8, G_SUPPLY;   // Load supply type
+        eq      EA, E8;         // It must have a correct state type
+        chk     CO;             // Or fail otherwise
+        test    EB;             // It must be set
+        chk     CO;             // Or we should fail
+        mov     E2, EB;         // Save supply
+        test    EC;             // ensure other field elements are empty
+        not     CO;             // invert CO value (we need the test to fail)
+        chk     CO;             // fail if not
+        test    ED;             // ensure other field elements are empty
+        not     CO;             // invert CO value (we need the test to fail)
+        chk     CO;             // fail if not
+        put     E3, 0;          // E3 will contain the sum of outputs
+        clr     EE;             // Ensure EE is set to none, so we enforce the third element to be empty
+        call    FN_FUNGIBLE_SUM_OUTPUTS;// Compute a sum of outputs
+        eq      E2, E3;         // check that circulating supply equals to the sum of outputs
+        chk     CO;             // fail if not
 
         // Check there is no more global state
-        ldo     immutable       ;
-        not     CO              ;
-        chk     CO              ;
+        ldo     immutable;
+        not     CO;
+        chk     CO;
         ret;
 
      routine FN_FUNGIBLE_TRANSFER:
         // Verify that no global state is defined
-        ldo     immutable       ;// Try to iterate over global state
-        not     CO              ;// Invert result (we need NO state as a Success)
-        chk     CO              ;// Fail if there is a global state
+        call    shared, FN_GLOBAL_ABSENT;
 
         // Verify owned state
-        clr     EE              ;// Ensure EE is set to none, so we enforce the third element to be empty
-        call    shared, FN_SUM_INPUTS     ;// Compute a sum of inputs into E2
-        call    shared, FN_SUM_OUTPUTS    ;// Compute a sum of outputs into E3
-        eq      E2, E3          ;// check that the sum of inputs equals the sum of outputs
-        chk     CO              ;// fail if not
+        clr     EE;             // Ensure EE is set to none, so we enforce the third element to be empty
+        call    FN_FUNGIBLE_SUM_INPUTS; // Compute a sum of inputs into E2
+        call    FN_FUNGIBLE_SUM_OUTPUTS; // Compute a sum of outputs into E3
+        eq      E2, E3;         // check that the sum of inputs equals the sum of outputs
+        chk     CO;             // fail if not
 
         ret;
+
+     proc FN_FUNGIBLE_SUM_INPUTS:
+        put     E2, 0;          // Set initial sum to zero
+        put     EH, O_AMOUNT;   // Set EH to the field element representing the owned value
+        rsti    destructible;   // Start iteration over inputs
+
+     label LOOP_INPUTS:
+        ldi     destructible;   // load next state value
+
+        // Finish if no more elements are present
+        not     CO;
+        jif     CO, +3;
+        ret;
+
+        eq      EA, EH;         // do we have a correct state type?
+        chk     CO;             // fail if not
+
+        eq      EC, EE;         // ensure EC is not set
+        not     CO;
+        chk     CO;             // fail if not
+
+        test    ED;             // ensure ED is not set
+        not     CO;
+        chk     CO;             // fail if not
+
+        fits    EB, 64.bits;    // ensure the value fits in u64
+        chk     CO;             // fail if not
+        add     E2, EB;         // add input to input accumulator
+        fits    E2, 64.bits;    // ensure we do not overflow
+        chk     CO;             // fail if not
+
+        jmp     LOOP_INPUTS;    // loop
+
+     proc FN_FUNGIBLE_SUM_OUTPUTS:
+        put     E3, 0;          // Set initial sum to zero
+        put     EH, O_AMOUNT;   // Set EH to the field element representing the owned value
+        rsto    destructible;   // Start iteration over outputs
+
+     label LOOP_OUTPUTS:
+        ldo     destructible;   // load next state value
+
+        // Finish if no more elements are present
+        not     CO;
+        jif     CO, +3;
+        ret;
+
+        eq      EA, EH;         // do we have a correct state type?
+        chk     CO;             // fail if not
+
+        test    EC;             // ensure EC is not set
+        not     CO;
+        chk     CO;             // fail if not
+
+        test    ED;             // ensure ED is not set
+        not     CO;
+        chk     CO;             // fail if not
+
+        fits    EB, 64.bits;    // ensure the value fits in u64
+        chk     CO;             // fail if not
+        add     E3, EB;         // add input to input accumulator
+        fits    E3, 64.bits;    // ensure we do not overflow
+        chk     CO;             // fail if not
+
+        jmp     LOOP_OUTPUTS;   // loop
     };
 
     CompiledLib::compile(&mut code, &[&shared_lib()])
@@ -86,12 +190,14 @@ pub fn fungible() -> CompiledLib {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
+    use amplify::num::u256;
     use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
     use strict_types::StrictDumb;
-    use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
-    use zkaluvm::{GfaConfig, FIELD_ORDER_SECP};
+    use zkaluvm::alu::{CoreConfig, CoreExt, Lib, LibId, Supercore, Vm};
+    use zkaluvm::{GfaConfig, GfaCore, RegE, FIELD_ORDER_SECP};
+
+    use super::*;
+    use crate::{G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT};
 
     const CONFIG: CoreConfig = CoreConfig {
         halt: true,
@@ -117,6 +223,125 @@ mod tests {
             panic!("Unknown library: {id}");
         }
         (fungible(), vm, resolver)
+    }
+
+    const AMOUNTS_OVERFLOW: &[&[u64]] = &[
+        &[u64::MAX, 1, 1],
+        &[u64::MAX - 1, 2],
+        &[u64::MAX, u64::MAX - 1],
+        &[u64::MAX, u64::MAX - 1, 1],
+        &[u64::MAX, u64::MAX],
+        &[u64::MAX / 2 + 1, u64::MAX / 2 + 1],
+        &[u64::MAX / 2, u64::MAX / 2, 2],
+    ];
+    const AMOUNTS_OK: &[&[u64]] = &[
+        &[],
+        &[0u64],
+        &[1u64; 4],
+        &[10u64; 100],
+        &[u64::MAX - 1, 1],
+        &[u64::MAX],
+        &[u64::MAX / 2 - 1, u64::MAX / 2],
+    ];
+
+    #[test]
+    fn sum_inputs_overflow() {
+        for input in AMOUNTS_OVERFLOW {
+            let (lib, mut vm, resolver) = harness();
+            let input = input
+                .into_iter()
+                .map(|val| StateValue::new(O_AMOUNT, *val))
+                .collect::<Vec<_>>();
+            let context = VmContext {
+                destructible_input: input.as_slice(),
+                immutable_input: &[],
+                destructible_output: &[],
+                immutable_output: &[],
+            };
+            let res = vm
+                .exec(lib.routine(FN_FUNGIBLE_SUM_INPUTS), &context, resolver)
+                .is_ok();
+            assert!(!res);
+        }
+    }
+
+    #[test]
+    fn sum_outputs_overflow() {
+        for output in AMOUNTS_OVERFLOW {
+            let (lib, mut vm, resolver) = harness();
+            let output = output
+                .into_iter()
+                .map(|val| StateCell {
+                    data: StateValue::new(O_AMOUNT, *val),
+                    auth: AuthToken::strict_dumb(),
+                    lock: None,
+                })
+                .collect::<Vec<_>>();
+            let context = VmContext {
+                destructible_input: &[],
+                immutable_input: &[],
+                destructible_output: output.as_slice(),
+                immutable_output: &[],
+            };
+            let res = vm
+                .exec(lib.routine(FN_FUNGIBLE_SUM_OUTPUTS), &context, resolver)
+                .is_ok();
+            assert!(!res);
+        }
+    }
+
+    #[test]
+    fn sum_inputs() {
+        for input in AMOUNTS_OK {
+            let (lib, mut vm, resolver) = harness();
+            let sum = input.iter().sum::<u64>();
+            let input = input
+                .into_iter()
+                .map(|val| StateValue::new(O_AMOUNT, *val))
+                .collect::<Vec<_>>();
+            let context = VmContext {
+                destructible_input: input.as_slice(),
+                immutable_input: &[],
+                destructible_output: &[],
+                immutable_output: &[],
+            };
+            let res = vm
+                .exec(lib.routine(FN_FUNGIBLE_SUM_INPUTS), &context, resolver)
+                .is_ok();
+            let gfa: GfaCore = vm.core.cx.subcore();
+            assert_eq!(gfa.get(RegE::E2).unwrap().to_u256(), u256::from(sum));
+            assert!(res);
+        }
+    }
+
+    #[test]
+    fn sum_outputs() {
+        let lock = None;
+        let auth = AuthToken::strict_dumb();
+        for output in AMOUNTS_OK {
+            let (lib, mut vm, resolver) = harness();
+            let sum = output.iter().sum::<u64>();
+            let output = output
+                .into_iter()
+                .map(|val| StateCell {
+                    data: StateValue::new(O_AMOUNT, *val),
+                    auth,
+                    lock,
+                })
+                .collect::<Vec<_>>();
+            let context = VmContext {
+                destructible_input: &[],
+                immutable_input: &[],
+                destructible_output: output.as_slice(),
+                immutable_output: &[],
+            };
+            let res = vm
+                .exec(lib.routine(FN_FUNGIBLE_SUM_OUTPUTS), &context, resolver)
+                .is_ok();
+            let gfa: GfaCore = vm.core.cx.subcore();
+            assert_eq!(gfa.get(RegE::E3).unwrap().to_u256(), u256::from(sum));
+            assert!(res);
+        }
     }
 
     #[test]

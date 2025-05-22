@@ -23,22 +23,21 @@
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
-use super::{shared_lib, FN_ASSET_SPEC};
+use super::{shared_lib, FN_ASSET_SPEC, FN_GLOBAL_ABSENT};
 use crate::{G_NFT, O_AMOUNT};
 
 pub const FN_UNIQUE_TRANSFER: u16 = 3;
 
-pub(super) const FN_GLOBAL_VERIFY_TOKEN: u16 = 1;
-pub(super) const FN_OWNED_TOKEN: u16 = 2;
-pub(super) const FN_GLOBAL_ABSENT: u16 = 4;
+pub const FN_GLOBAL_VERIFY_TOKEN: u16 = 1;
+pub const FN_OWNED_TOKEN: u16 = 2;
 
 pub fn unique() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
-    const VERIFY_GLOBAL_TOKEN: u16 = 5;
-    const VERIFY_IN_TOKEN: u16 = 6;
-    const VERIFY_OUT_TOKEN: u16 = 7;
-    const VERIFY_TOKEN: u16 = 8;
+    const VERIFY_GLOBAL_TOKEN: u16 = 4;
+    const VERIFY_IN_TOKEN: u16 = 5;
+    const VERIFY_OUT_TOKEN: u16 = 6;
+    const VERIFY_TOKEN: u16 = 7;
 
     let mut code = uasm! {
     // Verification of unique token issue
@@ -48,7 +47,7 @@ pub fn unique() -> CompiledLib {
         call    shared, FN_ASSET_SPEC; // Call asset check.
         // Check that there is no fractionality
         put     EH, 1;
-        eq      EB, EH;             // `EB` is returned from `FN_ASSET_SPEC` and contains fractions
+        eq      E4, EH;             // `E4` is returned from `FN_ASSET_SPEC` and contains fractions
         chk     CO;
         clr     EH;
         call    VERIFY_GLOBAL_TOKEN;// Verify token spec
@@ -98,27 +97,11 @@ pub fn unique() -> CompiledLib {
     // Args: no
     // Returns: nothing
     proc FN_UNIQUE_TRANSFER:
-        call    FN_GLOBAL_ABSENT;
+        call    shared, FN_GLOBAL_ABSENT;
         call    VERIFY_IN_TOKEN;
         mov     E5, E3;         // Save the token id
         call    VERIFY_OUT_TOKEN;
         eq      E3, E5;         // Check that the tokens have the same id
-        chk     CO;
-        ret;
-
-    // Get token allocation
-    // We export this procedure to be used in other libraries
-    // Args: none
-    // Returns: nothing
-    // Side-effects: reset input and output global state iterators
-    proc FN_GLOBAL_ABSENT:
-        rsti    immutable;
-        cknxi   immutable;
-        not     CO;
-        chk     CO;
-        rsto    immutable;
-        cknxo   immutable;
-        not     CO;
         chk     CO;
         ret;
 

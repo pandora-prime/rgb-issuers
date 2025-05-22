@@ -21,18 +21,18 @@
 // the License.
 
 mod collection;
-mod dividable;
+mod divisible;
 mod fungible;
 mod shared;
 mod unique;
 
 pub use collection::{collection, FN_FAC_TRANSFER};
-pub use dividable::{fractionable, FN_UAC_TRANSFER};
-pub use fungible::{fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
-pub use shared::shared_lib;
-pub use unique::{unique, FN_UNIQUE_TRANSFER};
-
-pub(self) use shared::{FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
-pub(self) use unique::{FN_GLOBAL_VERIFY_TOKEN, FN_OWNED_TOKEN};
+pub use divisible::{divisible, FN_DIVISIBLE_TRANSFER, FN_NFT_SUM_INPUTS, FN_NFT_SUM_OUTPUTS};
+pub use fungible::{
+    fungible, FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_SUM_INPUTS, FN_FUNGIBLE_SUM_OUTPUTS,
+    FN_FUNGIBLE_TRANSFER,
+};
+pub use shared::{shared_lib, FN_ASSET_SPEC, FN_GLOBAL_ABSENT};
+pub use unique::{unique, FN_GLOBAL_VERIFY_TOKEN, FN_OWNED_TOKEN, FN_UNIQUE_TRANSFER};
 
 pub const FN_RGB21_ISSUE: u16 = 0; // In all libs it must be the first method

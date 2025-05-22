@@ -39,14 +39,14 @@ pub fn issuer() -> Issuer {
         [
             scripts::shared_lib().into_lib(),
             scripts::unique().into_lib(),
-            scripts::fractionable().into_lib(),
+            scripts::divisible().into_lib(),
         ],
         types.type_system(),
     )
 }
 
 fn codex() -> Codex {
-    let lib = scripts::fractionable();
+    let lib = scripts::divisible();
     let codex = Codex {
         name: tiny_s!("Non-fungible Divisible Asset Collection"),
         developer: Identity::from(PANDORA),
