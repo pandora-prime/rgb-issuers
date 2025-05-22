@@ -24,7 +24,7 @@ use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
 use super::{shared_lib, FN_ASSET_SPEC, FN_SUM_INPUTS, FN_SUM_OUTPUTS};
-use crate::{G_SUPPLY, O_AMOUNT};
+use crate::{G_NFT, G_SUPPLY, O_AMOUNT};
 
 pub const FN_RGB21_ISSUE: u16 = 0;
 pub const FN_UDA_TRANSFER: u16 = 3;
@@ -32,67 +32,144 @@ pub const FN_UAC_TRANSFER: u16 = 3;
 pub const FN_FAC_TRANSFER: u16 = 6;
 pub const FN_UNIQUE: u16 = 3;
 
-pub(self) const FN_VERIFY_TOKEN: u16 = 1;
+pub(self) const FN_GLOBAL_VERIFY_TOKEN: u16 = 1;
+pub(self) const FN_OWNED_TOKEN: u16 = 2;
 
 pub fn unique() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
 
-    const VERIFY_AMOUNT: u16 = 2;
+    const VERIFY_AMOUNT: u16 = 4;
+    const VERIFY_IN_AMOUNT: u16 = 5;
+    const VERIFY_OUT_AMOUNT: u16 = 6;
+    const VERIFY_GLOBAL_TOKEN: u16 = 7;
+    const VERIFY_IN_TOKEN: u16 = 8;
+    const VERIFY_OUT_TOKEN: u16 = 9;
 
     let mut code = uasm! {
+      // Verification of unique token issue
+      // Args: no
+      // Returns: nothing
       proc FN_RGB21_ISSUE:
-        call    shared, FN_ASSET_SPEC   ;// Call asset check.
+        call    shared, FN_ASSET_SPEC; // Call asset check.
         // Check that there is no fractionality
-        put     E2, 1;
-        eq      EB, E2;
+        put     EH, 1;
+        eq      EB, EH;             // `EB` is returned from `FN_ASSET_SPEC` and contains fractions
         chk     CO;
-        clr     E2;
-
-        ldo     immutable      ;// Read fourth global state - token information
-        call    FN_VERIFY_TOKEN;// Verify token spec
-        cknxo   immutable      ;// Verify there are no more tokens
-        not     CO;
-        chk     CO;
-
-        call    VERIFY_AMOUNT  ;// Verify token amount
+        clr     EH;
+        call    VERIFY_GLOBAL_TOKEN;// Verify token spec
+        call    VERIFY_OUT_TOKEN;   // Verify the output token
+        call    VERIFY_OUT_AMOUNT;  // Verify token amount
         ret;
 
       // Verify token spec
-      proc FN_VERIFY_TOKEN:
-        put     E7, G_SUPPLY   ;// Set E7 to field element representing token data
-        eq      EA, E7          ;// It must have the correct state type
-        chk     CO              ;// Or fail otherwise
-        test    EB              ;// Token id must be set
-        chk     CO              ;// Or we should fail
-        mov     EE, EB          ;// Save token id for VERIFY_AMOUNT
-        test    EC              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need the test to fail)
-        chk     CO              ;// fail if not
-        test    ED              ;// ensure other field elements are empty
-        not     CO              ;// invert CO value (we need the test to fail)
-        chk     CO              ;// fail if not
+      // We export this procedure to be used in other libraries
+      // Args: no
+      // Returns: token id in `E3`
+      proc FN_GLOBAL_VERIFY_TOKEN:
+        put     EH, G_NFT;      // Set E7 to field element representing token data
+        eq      EA, EH;         // It must have the correct state type
+        chk     CO;             // Or fail otherwise
+        test    EB;             // Token id must be set
+        chk     CO;             // Or we should fail
+        mov     E3, EB;         // Save token id for returning it (used in VERIFY_AMOUNT)
+        test    EC;             // ensure other field elements are empty
+        not     CO;             // invert CO value (we need the test to fail)
+        chk     CO;             // fail if not
+        test    ED;             // ensure other field elements are empty
+        not     CO;             // invert CO value (we need the test to fail)
+        chk     CO;             // fail if not
         ret;
 
-      routine VERIFY_AMOUNT:
-        ldo     destructible;
-        put     E7, O_AMOUNT;   // Set E7 to field element representing token data
-        eq      EA, E7;
-        chk     CO;
-        put     E7, 1;
-        eq      EB, E7;          // The Amount must be exactly 1
-        chk     CO;
-        eq      EC, EE;         // Check that the token id is correct
-        chk     CO;
-        test    ED;             // The rest of the field elements must be empty
-        chk     CO;
+      // Get token allocation
+      // We export this procedure to be used in other libraries
+      // Args: none
+      // Returns: token id in `E3`, fractions in `E4`
+      proc FN_OWNED_TOKEN:
+        put     EH, G_NFT;      // Set E7 to field element representing token data
+        eq      EA, EH;         // It must have the correct state type
+        chk     CO;             // Or fail otherwise
+        test    EB;             // Token id must be set
+        chk     CO;             // Or we should fail
+        mov     E3, EB;         // Save token id for returning it
+        test    EC;             // Token fraction must be set
+        chk     CO;             // Or we should fail
+        mov     E4, EC;         // Save token fractions for returning it
+        test    ED;             // ensure other field elements are empty
+        not     CO;             // invert CO value (we need the test to fail)
+        chk     CO;             // fail if not
+        ret;
 
+      // Verification of unique token transfer
+      // Args: no
+      // Returns: nothing
+      proc FN_UDA_TRANSFER:
+        call    VERIFY_IN_TOKEN;
+        mov     E5, E3;         // Save the token id
+        call    VERIFY_OUT_TOKEN;
+        eq      E3, E5;         // Check that the tokens have the same id
+        chk     CO;
+        call    VERIFY_IN_AMOUNT;
+        call    VERIFY_OUT_AMOUNT;
+        ret;
+
+      routine VERIFY_IN_AMOUNT:
+        ldi     destructible;
+        call    VERIFY_AMOUNT;
+        cknxi   destructible;   // Verify there are no more tokens
+        not     CO;
+        chk     CO;
+        ret;
+
+      routine VERIFY_OUT_AMOUNT:
+        ldo     destructible;
+        call    VERIFY_AMOUNT;
         cknxo   destructible;   // Verify there are no more tokens
         not     CO;
         chk     CO;
         ret;
 
-      proc FN_UDA_TRANSFER:
-        ret; // TODO: Implement
+      // Args: `E3` - token id
+      routine VERIFY_AMOUNT:
+        put     EH, O_AMOUNT;   // Set E7 to field element representing token data
+        eq      EA, EH;
+        chk     CO;
+        put     EH, 1;
+        eq      EB, EH;         // The Amount must be exactly 1
+        chk     CO;
+        eq      EC, E3;         // Check that the token id is correct
+        chk     CO;
+        test    ED;             // The rest of the field elements must be empty
+        chk     CO;
+        ret;
+
+      routine VERIFY_GLOBAL_TOKEN:
+        ldo     immutable;      // Read the fourth global state: token information
+        call    FN_GLOBAL_VERIFY_TOKEN;// Verify token spec
+        cknxo   immutable;      // Verify there are no more tokens
+        not     CO;
+        chk     CO;
+
+      routine VERIFY_IN_TOKEN:
+        rsti    destructible;   // Restart the state iterator
+        ldi     destructible;   // Read input token information
+        call    FN_OWNED_TOKEN; // Get token fractions
+        put     EH, 1;
+        eq      E4, EH;         // Check there is no fractionality
+        chk     CO;
+        cknxi   destructible;   // Verify there are no more tokens
+        not     CO;
+        chk     CO;
+
+      routine VERIFY_OUT_TOKEN:
+        rsto    destructible;   // Restart the state iterator
+        ldo     destructible;   // Read input token information
+        call    FN_OWNED_TOKEN; // Get token fractions
+        put     EH, 1;
+        eq      E4, EH;         // Check there is no fractionality
+        chk     CO;
+        cknxo   destructible;   // Verify there are no more tokens
+        not     CO;
+        chk     CO;
     };
 
     CompiledLib::compile(&mut code, &[&shared_lib()])
@@ -123,19 +200,19 @@ pub fn collection() -> CompiledLib {
         ret;
 
       routine CHECK_TOKENS:
-        ldo     immutable;     // Read token information
+        ldo     immutable;      // Read token information
         chk     CO;
         jif     CO, +3;         // Return if no more state is count
         ret;
 
-        call    uda, FN_VERIFY_TOKEN; // Verify token spec
-        rsto    destructible;  // Start iteration over owned tokens
+        call    uda, FN_GLOBAL_VERIFY_TOKEN; // Verify token spec
+        rsto    destructible;   // Start iteration over owned tokens
         put     E2, 0;          // Initialize token counter
-        call    VERIFY_AMOUNT; // Verify token amount
+        call    VERIFY_AMOUNT;  // Verify token amount
         put     E7, 1;          // Check token fraction is exactly 1
         eq      EB, E7;
         chk     CO;
-        jmp     CHECK_TOKENS;  // Loop next token
+        jmp     CHECK_TOKENS;   // Loop next token
 
         ret;
 
@@ -145,7 +222,7 @@ pub fn collection() -> CompiledLib {
         jif     CO, +3;
         ret;
 
-        put     E7, O_AMOUNT;  // Check that the state type is correct
+        put     E7, O_AMOUNT;   // Check that the state type is correct
         eq      EA, E7;
         chk     CO;
 
@@ -234,7 +311,7 @@ pub fn fractionable() -> CompiledLib {
         jif     CO, END_TOKENS ;// Complete token validation if no more tokens left
 
         // Verify token spec
-        call    uda, FN_VERIFY_TOKEN   ;// Verify token spec
+        call    uda, FN_GLOBAL_VERIFY_TOKEN   ;// Verify token spec
         // TODO: Ensure all token ids are unique
 
         // Check issued supply

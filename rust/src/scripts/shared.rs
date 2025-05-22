@@ -25,6 +25,9 @@ use zkaluvm::alu::CompiledLib;
 
 use crate::{G_DETAILS, G_NAME, G_PRECISION, G_TICKER, O_AMOUNT};
 
+// TODO: Make to match AluVM ABI standards
+//       (using E1-E8 registers for inputs and outputs, not relying on persistence of `EA`-`EH`).
+
 /// Checks globals defining assent specification to be present and contain the correct state type.
 ///
 /// NB: Doesn't check that the values of that globals fulfill ASCII criteria (like length, use of

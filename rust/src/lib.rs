@@ -42,6 +42,7 @@ pub const G_NAME: u256 = u256::ZERO;
 pub const G_TICKER: u256 = u256::ONE;
 pub const G_PRECISION: u256 = u256::from_inner([2, 0, 0, 0]);
 pub const G_SUPPLY: u256 = u256::from_inner([3, 0, 0, 0]);
+pub const G_NFT: u256 = G_SUPPLY;
 pub const G_DETAILS: u256 = G_TICKER;
 pub const O_AMOUNT: u256 = u256::ZERO;
 
