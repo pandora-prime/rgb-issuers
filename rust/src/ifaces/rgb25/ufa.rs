@@ -107,7 +107,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("circulating") => ImmutableApi {
+            vname!("issued") => ImmutableApi {
                 published: true,
                 sem_id: types.get("RGBContract.Amount"),
                 convertor: StateConvertor::TypedEncoder(G_SUPPLY),
