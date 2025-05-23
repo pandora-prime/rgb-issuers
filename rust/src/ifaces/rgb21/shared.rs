@@ -20,7 +20,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use amplify::num::u256;
 use hypersonic::{
     Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor,
     StateArithm, StateBuilder, StateConvertor,
@@ -28,7 +27,13 @@ use hypersonic::{
 use ifaces::Rgb21Types;
 use strict_types::SemId;
 
-use crate::{G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY, O_AMOUNT, PANDORA};
+use crate::{
+    ERRNO_FRACTIONALITY, ERRNO_INVALID_PRECISION, ERRNO_INVALID_TOKEN_ID, ERRNO_NO_INPUT,
+    ERRNO_NO_NAME, ERRNO_NO_OUTPUT, ERRNO_NO_PRECISION, ERRNO_NO_TICKER, ERRNO_NO_TOKEN_ID,
+    ERRNO_TOKEN_EXCESS, ERRNO_TOKEN_EXCESS_IN, ERRNO_TOKEN_EXCESS_OUT, ERRNO_UNEXPECTED_GLOBAL_IN,
+    ERRNO_UNEXPECTED_GLOBAL_OUT, ERRNO_UNEXPECTED_OWNED_IN, G_DETAILS, G_NAME, G_PRECISION,
+    G_SUPPLY, O_AMOUNT, PANDORA,
+};
 
 pub const VERIFIER_GENESIS: u16 = 0;
 pub const VERIFIER_TRANSFER: u16 = 1;
@@ -41,7 +46,7 @@ pub fn api(codex_id: CodexId) -> Api {
         codex_id,
         developer: Identity::from(PANDORA),
         conforms: Some(tn!("RGB21")),
-        default_call: Some(CallState::with("transfer", "fractions")),
+        default_call: Some(CallState::with("transfer", "balance")),
         reserved: default!(),
         immutable: tiny_bmap! {
             // NFT collection name
@@ -71,21 +76,21 @@ pub fn api(codex_id: CodexId) -> Api {
             },
             vname!("token") => ImmutableApi {
                 published: true,
-                sem_id: types.get("RGB21.Nft"),
-                convertor: StateConvertor::TypedEncoder(G_SUPPLY),
-                builder: StateBuilder::TypedEncoder(G_SUPPLY),
+                sem_id: types.get("RGB21.TokenIndex"),
+                convertor: StateConvertor::TypedFieldEncoder(G_SUPPLY),
+                builder: StateBuilder::TypedFieldEncoder(G_SUPPLY),
                 raw_convertor: RawConvertor::StrictDecode(types.get("RGB21.NftSpec")),
                 raw_builder: RawBuilder::StrictEncode(types.get("RGB21.NftSpec"))
             },
         },
         destructible: tiny_bmap! {
-            vname!("fractions") => DestructibleApi {
+            vname!("balance") => DestructibleApi {
                 sem_id: types.get("RGB21.Nft"),
                 arithmetics: StateArithm::Fungible,
-                convertor: StateConvertor::TypedEncoder(O_AMOUNT),
-                builder: StateBuilder::TypedEncoder(O_AMOUNT),
+                convertor: StateConvertor::TypedFieldEncoder(O_AMOUNT),
+                builder: StateBuilder::TypedFieldEncoder(O_AMOUNT),
                 witness_sem_id: SemId::unit(),
-                witness_builder: StateBuilder::TypedEncoder(O_AMOUNT)
+                witness_builder: StateBuilder::Unit
             }
         },
         aggregators: empty!(),
@@ -95,7 +100,21 @@ pub fn api(codex_id: CodexId) -> Api {
             vname!("_") => VERIFIER_TRANSFER,
         },
         errors: tiny_bmap! {
-            u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")
+            ERRNO_NO_TICKER => tiny_s!("no NFT ticker is set, or it is misplaced in the global state declaration (the ticker should be declared first)"),
+            ERRNO_NO_NAME => tiny_s!("no NFT name is set, or it is misplaced in the global state declaration (the name should be declared second)"),
+            ERRNO_NO_PRECISION => tiny_s!("no NFT fractionality is set, or it is misplaced in the global state declaration (the fractionality should be declared third)"),
+            ERRNO_INVALID_PRECISION => tiny_s!("invalid NFT ticker fractionality value"),
+            ERRNO_UNEXPECTED_OWNED_IN => tiny_s!("operation must have no inputs"),
+            ERRNO_UNEXPECTED_GLOBAL_IN => tiny_s!("operation must not use any global state"),
+            ERRNO_UNEXPECTED_GLOBAL_OUT => tiny_s!("operation must not declare any global state"),
+            ERRNO_FRACTIONALITY => tiny_s!("the NFT token issued under this codex must be non-fractional"),
+            ERRNO_INVALID_TOKEN_ID => tiny_s!("invalid token ID data"),
+            ERRNO_NO_INPUT => tiny_s!("the transfer operation must have one input"),
+            ERRNO_NO_OUTPUT => tiny_s!("the transfer operation must have one input"),
+            ERRNO_NO_TOKEN_ID => tiny_s!("no token ID is set for the transfer"),
+            ERRNO_TOKEN_EXCESS => tiny_s!("the number of issued NFT tokens must be one"),
+            ERRNO_TOKEN_EXCESS_IN => tiny_s!("the number of transferred NFT token inputs must be one"),
+            ERRNO_TOKEN_EXCESS_OUT => tiny_s!("the number of transferred NFT token outputs must be one"),
         },
     }
 }

@@ -20,6 +20,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use amplify::num::u256;
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
@@ -67,6 +68,16 @@ pub const FN_FUNGIBLE_SUM_INPUTS: u16 = 2;
 /// Extinguishes the output destructible state iterator
 pub const FN_FUNGIBLE_SUM_OUTPUTS: u16 = 4;
 
+pub const ERRNO_PRECISION_OVERFLOW: u256 = u256::from_inner([1, 1, 0, 0]);
+pub const ERRNO_NO_ISSUED: u256 = u256::from_inner([2, 1, 0, 0]);
+pub const ERRNO_SUM_ISSUE_MISMATCH: u256 = u256::from_inner([3, 1, 0, 0]);
+pub const ERRNO_UNEXPECTED_GLOBAL: u256 = u256::from_inner([4, 1, 0, 0]);
+pub const ERRNO_SUM_MISMATCH: u256 = u256::from_inner([5, 1, 0, 0]);
+pub const ERRNO_UNEXPECTED_OWNED_TYPE_IN: u256 = u256::from_inner([6, 1, 0, 0]);
+pub const ERRNO_INVALID_BALANCE_IN: u256 = u256::from_inner([7, 1, 0, 0]);
+pub const ERRNO_UNEXPECTED_OWNED_TYPE_OUT: u256 = u256::from_inner([8, 1, 0, 0]);
+pub const ERRNO_INVALID_BALANCE_OUT: u256 = u256::from_inner([9, 1, 0, 0]);
+
 pub fn fungible() -> CompiledLib {
     const LOOP_INPUTS: u16 = 3;
     const LOOP_OUTPUTS: u16 = 5;
@@ -76,10 +87,13 @@ pub fn fungible() -> CompiledLib {
     let mut code = uasm! {
      routine FN_FUNGIBLE_ISSUE:
         call    shared, FN_ASSET_SPEC;// Call asset check
+
+        put     E1, ERRNO_PRECISION_OVERFLOW; // Set error code for the case of failure
         fits    E4, 8.bits;     // The precision must fit into a byte
         chk     CO;             // - or fail otherwise
 
         // Validate circulating supply
+        put     E1, ERRNO_NO_ISSUED; // Set error code for the case of failure
         ldo     immutable;      // Read last global state - circulating supply
         chk     CO;             // It must exist
         put     E8, G_SUPPLY;   // Load supply type
@@ -94,16 +108,21 @@ pub fn fungible() -> CompiledLib {
         test    ED;             // ensure other field elements are empty
         not     CO;             // invert CO value (we need the test to fail)
         chk     CO;             // fail if not
+
+        // Validate that the issued amount is equal to the sum of the outputs
         put     E3, 0;          // E3 will contain the sum of outputs
-        clr     EE;             // Ensure EE is set to none, so we enforce the third element to be empty
         call    FN_FUNGIBLE_SUM_OUTPUTS;// Compute a sum of outputs
+        put     E1, ERRNO_SUM_ISSUE_MISMATCH; // Set error code for the case of failure
         eq      E2, E3;         // check that circulating supply equals to the sum of outputs
         chk     CO;             // fail if not
 
         // Check there is no more global state
+        put     E1, ERRNO_UNEXPECTED_GLOBAL; // Set error code for the case of failure
         ldo     immutable;
         not     CO;
         chk     CO;
+
+        clr     E1;             // Clear the error code
         ret;
 
      routine FN_FUNGIBLE_TRANSFER:
@@ -111,12 +130,14 @@ pub fn fungible() -> CompiledLib {
         call    shared, FN_GLOBAL_ABSENT;
 
         // Verify owned state
-        clr     EE;             // Ensure EE is set to none, so we enforce the third element to be empty
         call    FN_FUNGIBLE_SUM_INPUTS; // Compute a sum of inputs into E2
         call    FN_FUNGIBLE_SUM_OUTPUTS; // Compute a sum of outputs into E3
+        put     E1, ERRNO_SUM_MISMATCH; // Set error code for the case of failure
+        // TODO: Check the sum is not zero
         eq      E2, E3;         // check that the sum of inputs equals the sum of outputs
         chk     CO;             // fail if not
 
+        clr     E1;             // Clear the error code
         ret;
 
      proc FN_FUNGIBLE_SUM_INPUTS:
@@ -132,9 +153,11 @@ pub fn fungible() -> CompiledLib {
         jif     CO, +3;
         ret;
 
+        put     E1, ERRNO_UNEXPECTED_OWNED_TYPE_IN; // Set error code for the case of failure
         eq      EA, EH;         // do we have a correct state type?
         chk     CO;             // fail if not
 
+        put     E1, ERRNO_INVALID_BALANCE_IN; // Set error code for the case of failure
         eq      EC, EE;         // ensure EC is not set
         not     CO;
         chk     CO;             // fail if not
@@ -164,9 +187,11 @@ pub fn fungible() -> CompiledLib {
         jif     CO, +3;
         ret;
 
+        put     E1, ERRNO_UNEXPECTED_OWNED_TYPE_OUT; // Set error code for the case of failure
         eq      EA, EH;         // do we have a correct state type?
         chk     CO;             // fail if not
 
+        put     E1, ERRNO_INVALID_BALANCE_OUT; // Set error code for the case of failure
         test    EC;             // ensure EC is not set
         not     CO;
         chk     CO;             // fail if not

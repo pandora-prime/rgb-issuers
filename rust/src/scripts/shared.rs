@@ -20,6 +20,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use amplify::num::u256;
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
@@ -65,6 +66,14 @@ pub const FN_ASSET_SPEC: u16 = 0;
 /// Resets input and output global state iterators
 pub const FN_GLOBAL_ABSENT: u16 = 1;
 
+pub const ERRNO_NO_TICKER: u256 = u256::from_inner([1, 0, 0, 0]);
+pub const ERRNO_NO_NAME: u256 = u256::from_inner([2, 0, 0, 0]);
+pub const ERRNO_NO_PRECISION: u256 = u256::from_inner([3, 0, 0, 0]);
+pub const ERRNO_INVALID_PRECISION: u256 = u256::from_inner([4, 0, 0, 0]);
+pub const ERRNO_UNEXPECTED_OWNED_IN: u256 = u256::from_inner([5, 0, 0, 0]);
+pub const ERRNO_UNEXPECTED_GLOBAL_IN: u256 = u256::from_inner([6, 0, 0, 0]);
+pub const ERRNO_UNEXPECTED_GLOBAL_OUT: u256 = u256::from_inner([7, 0, 0, 0]);
+
 pub fn shared_lib() -> CompiledLib {
     assert_eq!(O_AMOUNT, G_NAME);
     assert_eq!(G_TICKER, G_DETAILS);
@@ -72,32 +81,40 @@ pub fn shared_lib() -> CompiledLib {
     let mut code = uasm! {
      proc FN_ASSET_SPEC:
         // There must be no inputs
-        rsti    destructible;
+        put     E1, ERRNO_UNEXPECTED_GLOBAL_IN; // Set error code for the case of failure
+        rsti    immutable;
         cknxi   immutable;
         not     CO;
         chk     CO;
+
+        put     E1, ERRNO_UNEXPECTED_OWNED_IN; // Set error code for the case of failure
         rsti    destructible;
         cknxi   destructible;
         not     CO;
         chk     CO;
 
+        put     E1, ERRNO_NO_TICKER; // Set error code for the case of failure
         ldo     immutable;      // Read the first global state - ticker in RGB20, details in RGB21/25
         chk     CO;             // - it must exist
         put     EH, G_TICKER;   // - set E1 to the field element representing owned value (also global asset name)
         eq      EA, EH;         // - it must have the correct state type
         chk     CO;             // - - or fail otherwise
 
+        put     E1, ERRNO_NO_NAME; // Set error code for the case of failure
         ldo     immutable;      // Read the second global state - asset name
         chk     CO;             // - it must exist
         put     EH, G_NAME;     // - set E1 to a field element representing global asset ticker (or details)
         eq      EA, EH;         // - it must have the correct state type
         chk     CO;             // - - or fail otherwise
 
+        put     E1, ERRNO_NO_PRECISION; // Set error code for the case of failure
         ldo     immutable;      // The third global state - precision
         chk     CO;             // - it must exist
         put     EH, G_PRECISION;// - set E1 to a field element representing global fractions
         eq      EA, EH;         // - it must have the correct state type
         chk     CO;             // - - or fail otherwise
+
+        put     E1, ERRNO_INVALID_PRECISION; // Set error code for the case of failure
         test    EB;             // - there must be a value for the precision
         chk     CO;             // - or fail otherwise
         mov     E4, EB;         // Return G_PRECISION in `E4`
@@ -109,6 +126,7 @@ pub fn shared_lib() -> CompiledLib {
         chk     CO;             // - or fail otherwise
 
         // Clear up
+        clr     E1;
         clr     EA;
         clr     EB;
         clr     EC;
@@ -117,10 +135,13 @@ pub fn shared_lib() -> CompiledLib {
         ret;
 
     proc FN_GLOBAL_ABSENT:
+        put     E1, ERRNO_UNEXPECTED_GLOBAL_IN; // Set error code for the case of failure
         rsti    immutable;
         cknxi   immutable;
         not     CO;
         chk     CO;
+
+        put     E1, ERRNO_UNEXPECTED_GLOBAL_OUT; // Set error code for the case of failure
         rsto    immutable;
         cknxo   immutable;
         not     CO;

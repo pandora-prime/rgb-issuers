@@ -40,3 +40,9 @@ zk-aluvm = { version = "0.12.0-rc.1", features = ["std", "log"] }
 default = ["std"]
 all = ["std"]
 std = [] # must-use feature
+
+[patch.crates-io]
+rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }

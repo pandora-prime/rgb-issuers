@@ -1,0 +1,21 @@
+consensus: bitcoin
+testnet: true
+codexId: nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva
+name: ____
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
+
+global:
+  - name: ticker
+    verified: ____
+  - name: name
+    verified: ____
+  - name: precision
+    verified: ____ # centiMilli
+  - name: issued
+    verified: ____
+
+owned:
+  - name: balance
+    seal: ____
+    data: ____

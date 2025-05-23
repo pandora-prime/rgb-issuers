@@ -20,7 +20,6 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use amplify::num::u256;
 use hypersonic::{
     Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
     RawConvertor, StateAggregator, StateArithm, StateBuilder, StateConvertor,
@@ -31,7 +30,14 @@ use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
 
 use crate::scripts::{FN_FUNGIBLE_ISSUE, FN_FUNGIBLE_TRANSFER};
-use crate::{scripts, G_NAME, G_PRECISION, G_SUPPLY, G_TICKER, O_AMOUNT, PANDORA};
+use crate::{
+    scripts, ERRNO_INVALID_BALANCE_IN, ERRNO_INVALID_BALANCE_OUT, ERRNO_INVALID_PRECISION,
+    ERRNO_NO_ISSUED, ERRNO_NO_NAME, ERRNO_NO_PRECISION, ERRNO_NO_TICKER, ERRNO_PRECISION_OVERFLOW,
+    ERRNO_SUM_ISSUE_MISMATCH, ERRNO_SUM_MISMATCH, ERRNO_UNEXPECTED_GLOBAL,
+    ERRNO_UNEXPECTED_GLOBAL_IN, ERRNO_UNEXPECTED_GLOBAL_OUT, ERRNO_UNEXPECTED_OWNED_IN,
+    ERRNO_UNEXPECTED_OWNED_TYPE_IN, ERRNO_UNEXPECTED_OWNED_TYPE_OUT, G_NAME, G_PRECISION, G_SUPPLY,
+    G_TICKER, O_AMOUNT, PANDORA,
+};
 
 pub const VERIFIER_GENESIS: u16 = 0;
 pub const VERIFIER_TRANSFER: u16 = 1;
@@ -46,7 +52,7 @@ pub fn issuer() -> Issuer {
         api,
         [
             scripts::shared_lib().into_lib(),
-            scripts::shared_lib().into_lib(),
+            scripts::fungible().into_lib(),
         ],
         types.type_system(),
     )
@@ -80,19 +86,19 @@ pub fn api(codex_id: CodexId) -> Api {
         default_call: Some(CallState::with("transfer", "balance")),
         reserved: default!(),
         immutable: tiny_bmap! {
-            vname!("name") => ImmutableApi {
-                published: true,
-                sem_id: types.get("RGBContract.AssetName"),
-                convertor: StateConvertor::TypedEncoder(G_NAME),
-                builder: StateBuilder::TypedEncoder(G_NAME),
-                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
-                raw_builder: RawBuilder::StrictEncode(SemId::unit())
-            },
             vname!("ticker") => ImmutableApi {
                 published: true,
                 sem_id: types.get("RGBContract.Ticker"),
                 convertor: StateConvertor::TypedEncoder(G_TICKER),
                 builder: StateBuilder::TypedEncoder(G_TICKER),
+                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
+                raw_builder: RawBuilder::StrictEncode(SemId::unit())
+            },
+            vname!("name") => ImmutableApi {
+                published: true,
+                sem_id: types.get("RGBContract.AssetName"),
+                convertor: StateConvertor::TypedEncoder(G_NAME),
+                builder: StateBuilder::TypedEncoder(G_NAME),
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
@@ -120,7 +126,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 convertor: StateConvertor::TypedEncoder(O_AMOUNT),
                 builder: StateBuilder::TypedEncoder(O_AMOUNT),
                 witness_sem_id: SemId::unit(),
-                witness_builder: StateBuilder::TypedEncoder(O_AMOUNT)
+                witness_builder: StateBuilder::Unit
             }
         },
         aggregators: tiny_bmap! {
@@ -135,7 +141,22 @@ pub fn api(codex_id: CodexId) -> Api {
             vname!("_") => VERIFIER_TRANSFER,
         },
         errors: tiny_bmap! {
-            u256::ZERO => tiny_s!("the sum of inputs is not equal to the sum of outputs")
+            ERRNO_NO_TICKER => tiny_s!("no RGB20 ticker is set, or it is misplaced in the global state declaration (the ticker should be declared first)"),
+            ERRNO_NO_NAME => tiny_s!("no RGB20 asset name is set, or it is misplaced in the global state declaration (the name should be declared second)"),
+            ERRNO_NO_PRECISION => tiny_s!("no RGB20 precision is set, or it is misplaced in the global state declaration (the precision should be declared third)"),
+            ERRNO_INVALID_PRECISION => tiny_s!("invalid RGB20 ticket precision value"),
+            ERRNO_UNEXPECTED_OWNED_IN => tiny_s!("operation must have no inputs"),
+            ERRNO_UNEXPECTED_GLOBAL_IN => tiny_s!("operation must not use any global state"),
+            ERRNO_UNEXPECTED_GLOBAL_OUT => tiny_s!("operation must not declare any global state"),
+            ERRNO_INVALID_BALANCE_IN => tiny_s!("invalid value for an input balance"),
+            ERRNO_INVALID_BALANCE_OUT => tiny_s!("invalid value for an output balance"),
+            ERRNO_NO_ISSUED => tiny_s!("no information about the issued supply found"),
+            ERRNO_PRECISION_OVERFLOW => tiny_s!("the precision overflows the maximum value"),
+            ERRNO_SUM_ISSUE_MISMATCH => tiny_s!("the declared issued supply does not match the output balance"),
+            ERRNO_SUM_MISMATCH => tiny_s!("the sum of inputs is not equal to the sum of outputs"),
+            ERRNO_UNEXPECTED_GLOBAL => tiny_s!("unexpected global state"),
+            ERRNO_UNEXPECTED_OWNED_TYPE_IN => tiny_s!("unexpected operation input"),
+            ERRNO_UNEXPECTED_OWNED_TYPE_OUT => tiny_s!("unexpected operation output"),
         },
     }
 }

@@ -1,0 +1,34 @@
+consensus: bitcoin
+testnet: true
+codexId: WuQZlcwQ-0~G5Lwc-B2Sa7Wb-0D_6~E9-MeHK3ej-qWuE4Lo#random-index-pierre
+name: ______
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
+
+global:
+  - name: details
+    verified: # must stay empty
+    unverified: ______ # actual details go here
+  - name: name
+    verified: ______
+  - name: fractions
+    verified: 1
+  - name: token
+    verified: 1
+    unverified:
+      name: Default
+      embedded:
+        mime:
+          type: text
+          subtype: plain
+          charset:
+        data: ______
+      external:
+      reserves:
+
+owned:
+  - name: balance
+    seal: ______
+    data:
+      tokenIndex: 1
+      fraction: 1

@@ -35,13 +35,9 @@ data Nft               : tokenIndex TokenIndex
 
 data NftEngraving      : appliedTo TokenIndex, content EmbeddedMedia
 
-data NftSpec           : index TokenIndex
-                       , ticker RGBContract.Ticker?
-                       , name RGBContract.AssetName?
-                       , details RGBContract.Details?
-                       , preview EmbeddedMedia?
-                       , media Attachment?
-                       , attachments {U8 -> ^ ..14.h Attachment}
+data NftSpec           : name RGBContract.AssetName?
+                       , embedded EmbeddedMedia?
+                       , external Attachment?
                        , reserves ProofOfReserves?
 
 data OwnedFraction     : U64
@@ -56,10 +52,10 @@ interface RGB21
     pub fractions: OwnedFraction
     pub {token+}: NFT -> NFTSpec
 
-    owned [fractions*]: NFT
+    owned [balance*]: NFT
 
-    genesis issue: name, details, fractions
-                 -> beneficiary [fractions*]
+    genesis issue: name, details, balance
+                 -> beneficiary [balance*]
         (fractions.sum ?? 1) =?= 1 !! incompleteFractions
 
     op transfer: from [balance+] -> to [balance*]

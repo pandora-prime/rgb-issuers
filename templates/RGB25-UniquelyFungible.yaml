@@ -1,0 +1,22 @@
+consensus: bitcoin
+testnet: true
+codexId: WI1YDXvm-Ts3s846-yzyXOcH-df36I~U-lDU09tn-6GL7Udg#oliver-karma-igor
+name: ____
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
+
+global:
+  - name: details
+    verified: # must stay empty
+    unverified: ____ # actual details go here
+  - name: name
+    verified: ____
+  - name: precision
+    verified: ____ # centiMilli
+  - name: issued
+    verified: ____
+
+owned:
+  - name: balance
+    seal: ____
+    data: ____

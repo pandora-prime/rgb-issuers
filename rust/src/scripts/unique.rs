@@ -20,16 +20,26 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use amplify::num::u256;
 use hypersonic::uasm;
 use zkaluvm::alu::CompiledLib;
 
 use super::{shared_lib, FN_ASSET_SPEC, FN_GLOBAL_ABSENT};
-use crate::{G_NFT, O_AMOUNT};
+use crate::{ERRNO_UNEXPECTED_GLOBAL_IN, G_NFT, O_AMOUNT};
 
 pub const FN_UNIQUE_TRANSFER: u16 = 3;
 
 pub const FN_GLOBAL_VERIFY_TOKEN: u16 = 1;
 pub const FN_OWNED_TOKEN: u16 = 2;
+
+pub const ERRNO_FRACTIONALITY: u256 = u256::from_inner([1, 2, 0, 0]);
+pub const ERRNO_NO_TOKEN_ID: u256 = u256::from_inner([2, 2, 0, 0]);
+pub const ERRNO_INVALID_TOKEN_ID: u256 = u256::from_inner([3, 2, 0, 0]);
+pub const ERRNO_TOKEN_EXCESS: u256 = u256::from_inner([4, 2, 0, 0]);
+pub const ERRNO_NO_INPUT: u256 = u256::from_inner([5, 2, 0, 0]);
+pub const ERRNO_TOKEN_EXCESS_IN: u256 = u256::from_inner([6, 2, 0, 0]);
+pub const ERRNO_NO_OUTPUT: u256 = u256::from_inner([7, 2, 0, 0]);
+pub const ERRNO_TOKEN_EXCESS_OUT: u256 = u256::from_inner([8, 2, 0, 0]);
 
 pub fn unique() -> CompiledLib {
     let shared = shared_lib().into_lib().lib_id();
@@ -45,11 +55,14 @@ pub fn unique() -> CompiledLib {
     // Returns: nothing
     proc FN_RGB21_ISSUE:
         call    shared, FN_ASSET_SPEC; // Call asset check.
+
         // Check that there is no fractionality
+        put     E1, ERRNO_FRACTIONALITY; // Set error code for the case of failure
         put     EH, 1;
         eq      E4, EH;             // `E4` is returned from `FN_ASSET_SPEC` and contains fractions
         chk     CO;
         clr     EH;
+
         call    VERIFY_GLOBAL_TOKEN;// Verify token spec
         call    VERIFY_OUT_TOKEN;   // Verify the output token
         ret;
@@ -60,12 +73,17 @@ pub fn unique() -> CompiledLib {
     // Args: no
     // Returns: token id in `E3`
     proc FN_GLOBAL_VERIFY_TOKEN:
+        put     E1, ERRNO_UNEXPECTED_GLOBAL_IN; // Set error code for the case of failure
         put     EH, G_NFT;      // Set E7 to field element representing token data
         eq      EA, EH;         // It must have the correct state type
         chk     CO;             // Or fail otherwise
+
+        put     E1, ERRNO_NO_TOKEN_ID; // Set error code for the case of failure
         test    EB;             // Token id must be set
         chk     CO;             // Or we should fail
         mov     E3, EB;         // Save token id for returning it (used in VERIFY_AMOUNT)
+
+        put     E1, ERRNO_INVALID_TOKEN_ID; // Set error code for the case of failure
         test    EC;             // ensure other field elements are empty
         not     CO;             // invert CO value (we need the test to fail)
         chk     CO;             // fail if not
@@ -108,6 +126,7 @@ pub fn unique() -> CompiledLib {
     routine VERIFY_GLOBAL_TOKEN:
         ldo     immutable;      // Read the fourth global state: token information
         call    FN_GLOBAL_VERIFY_TOKEN;// Verify token spec
+        put     E1, ERRNO_TOKEN_EXCESS; // Set error code for the case of failure
         cknxo   immutable;      // Verify there are no more tokens
         not     CO;
         chk     CO;
@@ -115,9 +134,11 @@ pub fn unique() -> CompiledLib {
 
     routine VERIFY_IN_TOKEN:
         rsti    destructible;   // Restart the state iterator
+        put     E1, ERRNO_NO_INPUT; // Set error code for the case of failure
         ldi     destructible;   // Read input token information
         chk     CO;
         call    VERIFY_TOKEN;   // Verify token fractions
+        put     E1, ERRNO_TOKEN_EXCESS_IN; // Set error code for the case of failure
         cknxi   destructible;   // Verify there are no more tokens
         not     CO;
         chk     CO;
@@ -125,9 +146,11 @@ pub fn unique() -> CompiledLib {
 
     routine VERIFY_OUT_TOKEN:
         rsto    destructible;   // Restart the state iterator
+        put     E1, ERRNO_NO_OUTPUT; // Set error code for the case of failure
         ldo     destructible;   // Read input token information
         chk     CO;
         call    VERIFY_TOKEN;   // Verify token fractions
+        put     E1, ERRNO_TOKEN_EXCESS_OUT; // Set error code for the case of failure
         cknxo   destructible;   // Verify there are no more tokens
         not     CO;
         chk     CO;
@@ -135,6 +158,7 @@ pub fn unique() -> CompiledLib {
 
     routine VERIFY_TOKEN:
         call    FN_OWNED_TOKEN; // Get token fractions
+        put     E1, ERRNO_FRACTIONALITY; // Set error code for the case of failure
         put     EH, 1;
         eq      E4, EH;         // Check there is no fractionality
         chk     CO;
