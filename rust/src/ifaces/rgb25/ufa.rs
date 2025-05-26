@@ -21,8 +21,8 @@
 // the License.
 
 use hypersonic::{
-    Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
-    RawConvertor, StateArithm, StateBuilder, StateConvertor,
+    Api, CallState, Codex, CodexId, GlobalApi, Identity, Issuer, OwnedApi, RawBuilder,
+    RawConvertor, Semantics, StateArithm, StateBuilder, StateConvertor,
 };
 use ifaces::{CommonTypes, Rgb21Types};
 use strict_types::SemId;
@@ -46,15 +46,18 @@ pub fn issuer() -> Issuer {
     let codex = codex();
     let api = api(codex.codex_id());
 
-    Issuer::new(
-        codex,
-        api,
-        [
+    let semantics = Semantics {
+        version: 0,
+        default: api,
+        custom: none!(),
+        codex_libs: small_bset![
             scripts::shared_lib().into_lib(),
             scripts::fungible().into_lib(),
         ],
-        types.type_system(),
-    )
+        api_libs: none!(),
+        types: types.type_system(),
+    };
+    Issuer::new(codex, semantics).expect("invalid issuer")
 }
 
 fn codex() -> Codex {
@@ -79,14 +82,11 @@ pub fn api(codex_id: CodexId) -> Api {
     let types = Rgb21Types::new();
 
     Api {
-        version: default!(),
         codex_id,
-        developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB25")),
+        conforms: tiny_bset!(25),
         default_call: Some(CallState::with("transfer", "balance")),
-        reserved: default!(),
-        immutable: tiny_bmap! {
-            vname!("name") => ImmutableApi {
+        global: tiny_bmap! {
+            vname!("name") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.AssetName"),
                 convertor: StateConvertor::TypedEncoder(G_NAME),
@@ -94,7 +94,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("details") => ImmutableApi {
+            vname!("details") => GlobalApi {
                 published: true,
                 sem_id: SemId::unit(),
                 convertor: StateConvertor::TypedEncoder(G_DETAILS),
@@ -102,7 +102,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.Details"))
             },
-            vname!("precision") => ImmutableApi {
+            vname!("precision") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.Precision"),
                 convertor: StateConvertor::TypedEncoder(G_PRECISION),
@@ -110,7 +110,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("issued") => ImmutableApi {
+            vname!("issued") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.Amount"),
                 convertor: StateConvertor::TypedEncoder(G_SUPPLY),
@@ -119,8 +119,8 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
         },
-        destructible: tiny_bmap! {
-            vname!("balance") => DestructibleApi {
+        owned: tiny_bmap! {
+            vname!("balance") => OwnedApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedEncoder(O_AMOUNT),

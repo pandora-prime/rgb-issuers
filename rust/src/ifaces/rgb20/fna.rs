@@ -21,8 +21,9 @@
 // the License.
 
 use hypersonic::{
-    Api, CallState, Codex, CodexId, DestructibleApi, Identity, ImmutableApi, Issuer, RawBuilder,
-    RawConvertor, StateAggregator, StateArithm, StateBuilder, StateConvertor,
+    Aggregator, Api, CallState, Codex, CodexId, GlobalApi, Identity, Issuer, OwnedApi, RawBuilder,
+    RawConvertor, Semantics, StateArithm, StateBuilder, StateConvertor, StateSelector,
+    SubAggregator,
 };
 use ifaces::CommonTypes;
 use strict_types::SemId;
@@ -47,15 +48,18 @@ pub fn issuer() -> Issuer {
     let codex = codex();
     let api = api(codex.codex_id());
 
-    Issuer::new(
-        codex,
-        api,
-        [
+    let semantics = Semantics {
+        version: 0,
+        default: api,
+        custom: none!(),
+        codex_libs: small_bset![
             scripts::shared_lib().into_lib(),
             scripts::fungible().into_lib(),
         ],
-        types.type_system(),
-    )
+        api_libs: none!(),
+        types: types.type_system(),
+    };
+    Issuer::new(codex, semantics).expect("invalid issuer")
 }
 
 pub fn codex() -> Codex {
@@ -79,14 +83,11 @@ pub fn api(codex_id: CodexId) -> Api {
     let types = CommonTypes::new();
 
     Api {
-        version: default!(),
         codex_id,
-        developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB20")),
+        conforms: tiny_bset!(20),
         default_call: Some(CallState::with("transfer", "balance")),
-        reserved: default!(),
-        immutable: tiny_bmap! {
-            vname!("ticker") => ImmutableApi {
+        global: tiny_bmap! {
+            vname!("ticker") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.Ticker"),
                 convertor: StateConvertor::TypedEncoder(G_TICKER),
@@ -94,7 +95,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("name") => ImmutableApi {
+            vname!("name") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.AssetName"),
                 convertor: StateConvertor::TypedEncoder(G_NAME),
@@ -102,7 +103,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("precision") => ImmutableApi {
+            vname!("precision") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.Precision"),
                 convertor: StateConvertor::TypedEncoder(G_PRECISION),
@@ -110,7 +111,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("issued") => ImmutableApi {
+            vname!("issued") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.Amount"),
                 convertor: StateConvertor::TypedEncoder(G_SUPPLY),
@@ -119,8 +120,8 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
         },
-        destructible: tiny_bmap! {
-            vname!("balance") => DestructibleApi {
+        owned: tiny_bmap! {
+            vname!("balance") => OwnedApi {
                 sem_id: types.get("RGBContract.Amount"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedEncoder(O_AMOUNT),
@@ -130,10 +131,17 @@ pub fn api(codex_id: CodexId) -> Api {
             }
         },
         aggregators: tiny_bmap! {
-            vname!("knownIssued") => StateAggregator::SumV(vname!("issued")),
-            vname!("knownBurned") => StateAggregator::SumV(vname!("burned")),
-            vname!("knownCirculating") => StateAggregator::SumV(vname!("issued")),
-            vname!("maxSupply") => StateAggregator::SumV(vname!("issued")),
+            vname!("knownIssued") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
+            vname!("knownBurned") => Aggregator::Take(
+                SubAggregator::Const(types.get("RGBContract.Amount"), tiny_blob![0; 8])
+            ),
+            vname!("knownCirculating") => Aggregator::Take(SubAggregator::Diff(
+                StateSelector::Aggregated(vname!("knownIssued")),
+                StateSelector::Aggregated(vname!("burned"))
+            )),
+            vname!("totalIssued") => Aggregator::Some(SubAggregator::Copy(vname!("knownIssued"))),
+            vname!("totalBurned") => Aggregator::Some(SubAggregator::Copy(vname!("knownBurned"))),
+            vname!("totalCirculating") => Aggregator::Some(SubAggregator::Copy(vname!("knownCirculating"))),
         },
         verifiers: tiny_bmap! {
             vname!("issue") => VERIFIER_GENESIS,

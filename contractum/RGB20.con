@@ -8,6 +8,7 @@ interface RGB20
     pub terms?: ContractText
     pub [issued+]: Amount
     pub [burned*]: Amount
+    pub supplyLimit: Amount?
 
     read knownIssued: known [issued+] -> Amount := known.sum
     read knownBurned: known [burned*] -> Amount := known.sum ?? 0

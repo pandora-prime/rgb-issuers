@@ -30,8 +30,8 @@ fn main() {
     let issuer = ndc::issuer();
     println!(
         "Created issuer '{}' with id {}",
-        issuer.codex.name,
-        issuer.codex.codex_id()
+        issuer.codex_name(),
+        issuer.issuer_id()
     );
     let _ = fs::remove_file(FILE);
     issuer

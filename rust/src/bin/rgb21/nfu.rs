@@ -20,21 +20,19 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use issuers::rgb21::nfu;
 use std::fs;
 
-use issuers::rgb21::nfu;
-
 fn main() {
-    const FILE: &'static str = "compiled/RGB21-UniqueNFT.issuer";
-
     let issuer = nfu::issuer();
-    println!(
-        "Created issuer '{}' with id {}",
-        issuer.codex.name,
-        issuer.codex.codex_id()
+    let id = issuer.issuer_id();
+    let file = format!(
+        "compiled/RGB21-UniqueNFT-v{}-{}.issuer",
+        id.version, id.checksum
     );
-    let _ = fs::remove_file(FILE);
+    println!("Created issuer '{}' with id {id}", issuer.codex_name(),);
+    let _ = fs::remove_file(&file);
     issuer
-        .save(FILE)
+        .save(file)
         .expect("unable to save the issuer to the file");
 }

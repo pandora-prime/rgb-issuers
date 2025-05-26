@@ -21,8 +21,8 @@
 // the License.
 
 use hypersonic::{
-    Api, CallState, CodexId, DestructibleApi, Identity, ImmutableApi, RawBuilder, RawConvertor,
-    StateArithm, StateBuilder, StateConvertor,
+    Api, CallState, CodexId, GlobalApi, OwnedApi, RawBuilder, RawConvertor, StateArithm,
+    StateBuilder, StateConvertor,
 };
 use ifaces::Rgb21Types;
 use strict_types::SemId;
@@ -32,7 +32,7 @@ use crate::{
     ERRNO_NO_NAME, ERRNO_NO_OUTPUT, ERRNO_NO_PRECISION, ERRNO_NO_TICKER, ERRNO_NO_TOKEN_ID,
     ERRNO_TOKEN_EXCESS, ERRNO_TOKEN_EXCESS_IN, ERRNO_TOKEN_EXCESS_OUT, ERRNO_UNEXPECTED_GLOBAL_IN,
     ERRNO_UNEXPECTED_GLOBAL_OUT, ERRNO_UNEXPECTED_OWNED_IN, G_DETAILS, G_NAME, G_PRECISION,
-    G_SUPPLY, O_AMOUNT, PANDORA,
+    G_SUPPLY, O_AMOUNT,
 };
 
 pub const VERIFIER_GENESIS: u16 = 0;
@@ -42,15 +42,12 @@ pub fn api(codex_id: CodexId) -> Api {
     let types = Rgb21Types::new();
 
     Api {
-        version: default!(),
         codex_id,
-        developer: Identity::from(PANDORA),
-        conforms: Some(tn!("RGB21")),
+        conforms: tiny_bset!(21),
         default_call: Some(CallState::with("transfer", "balance")),
-        reserved: default!(),
-        immutable: tiny_bmap! {
+        global: tiny_bmap! {
             // NFT collection name
-            vname!("name") => ImmutableApi {
+            vname!("name") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGBContract.AssetName"),
                 convertor: StateConvertor::TypedEncoder(G_NAME),
@@ -58,7 +55,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("details") => ImmutableApi {
+            vname!("details") => GlobalApi {
                 published: true,
                 sem_id: SemId::unit(),
                 convertor: StateConvertor::TypedEncoder(G_DETAILS),
@@ -66,7 +63,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.Details"))
             },
-            vname!("fractions") => ImmutableApi {
+            vname!("fractions") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGB21.OwnedFraction"),
                 convertor: StateConvertor::TypedEncoder(G_PRECISION),
@@ -74,7 +71,7 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("token") => ImmutableApi {
+            vname!("token") => GlobalApi {
                 published: true,
                 sem_id: types.get("RGB21.TokenIndex"),
                 convertor: StateConvertor::TypedFieldEncoder(G_SUPPLY),
@@ -83,8 +80,8 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_builder: RawBuilder::StrictEncode(types.get("RGB21.NftSpec"))
             },
         },
-        destructible: tiny_bmap! {
-            vname!("balance") => DestructibleApi {
+        owned: tiny_bmap! {
+            vname!("balance") => OwnedApi {
                 sem_id: types.get("RGB21.Nft"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedFieldEncoder(O_AMOUNT),

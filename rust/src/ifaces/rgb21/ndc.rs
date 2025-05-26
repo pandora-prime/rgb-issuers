@@ -20,7 +20,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
-use hypersonic::{Codex, Identity, Issuer};
+use hypersonic::{Codex, Identity, Issuer, Semantics};
 use ifaces::Rgb21Types;
 use zkaluvm::alu::CoreConfig;
 use zkaluvm::FIELD_ORDER_SECP;
@@ -33,16 +33,19 @@ pub fn issuer() -> Issuer {
     let codex = codex();
     let api = api(codex.codex_id());
 
-    Issuer::new(
-        codex,
-        api,
-        [
+    let semantics = Semantics {
+        version: 0,
+        default: api,
+        custom: none!(),
+        codex_libs: small_bset![
             scripts::shared_lib().into_lib(),
             scripts::unique().into_lib(),
             scripts::divisible().into_lib(),
         ],
-        types.type_system(),
-    )
+        api_libs: none!(),
+        types: types.type_system(),
+    };
+    Issuer::new(codex, semantics).expect("invalid issuer")
 }
 
 fn codex() -> Codex {

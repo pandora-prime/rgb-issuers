@@ -25,16 +25,15 @@ use std::fs;
 use issuers::rgb20::fna;
 
 fn main() {
-    const FILE: &str = "compiled/RGB20-Simplest.issuer";
-
     let issuer = fna::issuer();
-    println!(
-        "Created issuer '{}' with id {}",
-        issuer.codex.name,
-        issuer.codex.codex_id()
+    let id = issuer.issuer_id();
+    let file = format!(
+        "compiled/RGB20-Simplest-v{}-{}.issuer",
+        id.version, id.checksum
     );
-    let _ = fs::remove_file(FILE);
+    println!("Created issuer '{}' with id {id}", issuer.codex_name(),);
+    let _ = fs::remove_file(&file);
     issuer
-        .save(FILE)
+        .save(&file)
         .expect("unable to save the issuer to the file");
 }
