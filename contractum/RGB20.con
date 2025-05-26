@@ -5,12 +5,12 @@ interface RGB20
     pub ticker: Ticker
     pub name: AssetName
     pub precision: Precision
-    pub terms?: ContractText -- some as @maybe
-    pub [issued]+: Amount -- same as @many
-    pub [burned]*: Amount -- same as @any
+    pub terms?: ContractText
+    pub [issued+]: Amount
+    pub [burned*]: Amount
 
     read knownIssued: known [issued+] -> Amount := known.sum
-    read knownBurned: known [burned+] -> Amount := known.sum ?? 0
+    read knownBurned: known [burned*] -> Amount := known.sum ?? 0
 
     read totalIssued?: issues [issued+], ops [inflate*] -> Amount?
         ops.flatMap(.\ $0.(owned "issueRight").all(.\ $0.spentBy.operation \in ops) ?? ~
@@ -24,12 +24,15 @@ interface RGB20
         ops.all (.\ $0.(owned "issueRight").all (.\ $0.spentBy.operation \in ops)) ?? ~
         burned.sum
 
-    read knownCirculating: Amount := knownIssued - knownBurned
-    read totalCirculating?: Amount? := totalIssued? - totalBurned? ?? ~
+    read knownCirculating: issued knownIssued, burned knownBurned -> Amount
+        issued - burned
+    read totalCirculating?: issued totalIssued?, burned totalBurned? -> Amount?
+        issued? - burned? ?? ~
+
+    owned [balance*]: Amount
 
     owned renominateRight?
     owned [issueRight*]: Amount
-    owned [balance*]: Amount
 
     genesis issue: ticker, name, precision, terms?, supply issued
                  -> beneficiary [balance*], issueRight*, renominateRight?

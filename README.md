@@ -19,22 +19,22 @@ and the third letter is a subtype, shown in rows.
 
 ### Fungible asset (RGB20) Issuers
 
-|              | No inflation (`N`)                        | Inflatable (`I`)                |
+|              | No inflation, `N`                         | Inflatable, `I`                 |
 |--------------|-------------------------------------------|---------------------------------|
 | Non-burnable | [FNA: Fungible Non-inflatable Asset][FNA] | FIA: Fungible Inflatable Asset  |
 | Burnable     | FBA: Fungible Burnable Asset              | FRA: Fungible Replaceable Asset |
 
 ### NFT (RGB21) Issuers
 
-|                              | Indivisible (`F`)                       | Divisible (`D`)                                     |
+|                              | Indivisible, `F`                        | Divisible, `D`                                      |
 |------------------------------|-----------------------------------------|-----------------------------------------------------|
-| Unique (single, `U`)         | [NFU: Non-fungible Unique asset][NFU]   | NDU: Non-fungible Divisible Unique asset            |
-| Collection (fixed size, `C`) | NFC: Non-fungible asset Collection)     | Non-fungible asset Collection                       |
-| Extendable collection (`E`)  | NFE: Non-fungible Extendable collection | NDE: Non-fungible Divisible & Extendable collection |
+| Unique (single), `U`         | [NFU: Non-fungible Unique asset][NFU]   | NDU: Non-fungible Divisible Unique asset            |
+| Collection (fixed size), `C` | NFC: Non-fungible asset Collection)     | NDC: Non-fungible asset Collection                  |
+| Extendable collection, `E`   | NFE: Non-fungible Extendable collection | NDE: Non-fungible Divisible & Extendable collection |
 
 ### Unique fungible asset (RGB25) Issuers
 
-[UDA: Unique fungible asset][UDA]
+[UFA: Unique fungible asset][UFA]
 
 ## Issuer readiness
 
@@ -60,4 +60,4 @@ and the third letter is a subtype, shown in rows.
 
 [NDC]: compiled/RGB21-DivisibleCollection.issuer
 
-[UDA]: compiled/RGB25-UniquelyFungible.issuer
+[UFA]: compiled/RGB25-UniquelyFungible.issuer
