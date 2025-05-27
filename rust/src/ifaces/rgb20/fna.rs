@@ -119,6 +119,15 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
+            // TODO:
+            /*vname!("supplyLimit") => GlobalApi {
+                published: true,
+                sem_id: types.get("RGBContract.Amount").optional(),
+                convertor: StateConvertor::TypedEncoder(G_SUPPLY),
+                builder: StateBuilder::TypedEncoder(G_SUPPLY),
+                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
+                raw_builder: RawBuilder::StrictEncode(SemId::unit())
+            },*/
         },
         owned: tiny_bmap! {
             vname!("balance") => OwnedApi {

@@ -14,6 +14,7 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "paste",
+ "serde",
  "strict_encoding",
  "wasm-bindgen",
 ]
@@ -30,6 +31,8 @@ dependencies = [
  "ascii",
  "getrandom 0.2.16",
  "getrandom 0.3.3",
+ "serde",
+ "stringly_conversions",
  "wasm-bindgen",
 ]
 
@@ -51,6 +54,7 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99bcb75a2982047f733547042fc3968c0f460dfcf7d90b90dea3b2744580e9ad"
 dependencies = [
+ "serde",
  "wasm-bindgen",
 ]
 
@@ -91,6 +95,9 @@ name = "ascii"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d92bec98840b8f03a5ff5413de5293bfcd8bf96467cf5452609f939ec6f5de16"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "ascii-armor"
@@ -232,6 +239,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -260,6 +268,7 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "ripemd",
+ "serde",
  "sha2",
  "strict_encoding",
  "strict_types",
@@ -420,7 +429,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#d90a5f42316c1198c4cff8a4542b9ee8427dd9aa"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "aluvm",
  "amplify",
@@ -428,6 +437,7 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "indexmap",
+ "serde",
  "sonic-api",
  "sonic-callreq",
  "strict_encoding",
@@ -474,6 +484,7 @@ checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
 dependencies = [
  "equivalent",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]
@@ -483,9 +494,16 @@ dependencies = [
  "amplify",
  "hypersonic",
  "rgb-interfaces",
+ "serde_yaml",
  "strict_types",
  "zk-aluvm",
 ]
+
+[[package]]
+name = "itoa"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "js-sys"
@@ -508,6 +526,12 @@ name = "log"
 version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+
+[[package]]
+name = "memchr"
+version = "2.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "mnemonic"
@@ -651,6 +675,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a0d197bd2c9dc6e53b84da9556a69ba4cdfab8619eb41a8bd1cc2027a0f6b1d"
 
 [[package]]
+name = "ryu"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
+
+[[package]]
 name = "secp256k1"
 version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -691,6 +721,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_json"
+version = "1.0.140"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20068b6e96dc6c9bd23e01df8827e6c7e1f2fddd43c21810382803c136b99373"
+dependencies = [
+ "itoa",
+ "memchr",
+ "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_spanned"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "serde_str_helpers"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b744a7c94f2f3785496af33a0d93857dfc0c521e25c38e993e9c5bb45f09c841"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "serde_with"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -713,6 +774,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -732,7 +806,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "sonic-api"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#d90a5f42316c1198c4cff8a4542b9ee8427dd9aa"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "aluvm",
  "amplify",
@@ -743,6 +817,8 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "indexmap",
+ "serde",
+ "serde_yaml",
  "sonic-callreq",
  "strict_encoding",
  "strict_types",
@@ -753,7 +829,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#d90a5f42316c1198c4cff8a4542b9ee8427dd9aa"
+source = "git+https://github.com/AluVM/sonic?branch=v0.12#e6df2aad9b06214d872d91fe6467df768ce83328"
 dependencies = [
  "amplify",
  "baid64",
@@ -762,6 +838,7 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "indexmap",
+ "serde",
  "strict_encoding",
  "strict_types",
  "ultrasonic",
@@ -777,6 +854,7 @@ dependencies = [
  "amplify",
  "getrandom 0.2.16",
  "getrandom 0.3.3",
+ "serde",
  "strict_encoding_derive",
  "wasm-bindgen",
 ]
@@ -806,10 +884,24 @@ dependencies = [
  "getrandom 0.2.16",
  "getrandom 0.3.3",
  "indexmap",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "sha2",
  "strict_encoding",
+ "toml",
  "vesper-lang",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "stringly_conversions"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff63080f492dd4d289ffcaed8d7ece38adfb423db910eb342c0e04d409536a7a"
+dependencies = [
+ "paste",
+ "serde_str_helpers",
 ]
 
 [[package]]
@@ -861,6 +953,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "0.8.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05ae329d1f08c4d17a59bed7ff5b5a769d062e64a62d34a3261b219e62cd5aae"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "0.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3da5db5a963e24bc68be8b17b6fa82814bb22ee8660f192bb182771d498f09a3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.22.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "310068873db2c5b3e7659d2cc35d21855dbafa50d1ce336397c666e3cb08137e"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_write",
+ "winnow",
+]
+
+[[package]]
+name = "toml_write"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfb942dfe1d8e29a7ee7fcbde5bd2b9a25fb89aa70caea2eba3bee836ff41076"
+
+[[package]]
 name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -877,6 +1010,7 @@ dependencies = [
  "commit_verify",
  "getrandom 0.2.16",
  "getrandom 0.3.3",
+ "serde",
  "strict_encoding",
  "wasm-bindgen",
  "zk-aluvm",
@@ -887,6 +1021,12 @@ name = "unicode-ident"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "version_check"
@@ -1037,6 +1177,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "winnow"
+version = "0.7.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "wit-bindgen-rt"
 version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1075,6 +1224,7 @@ dependencies = [
  "amplify",
  "getrandom 0.2.16",
  "getrandom 0.3.3",
+ "serde",
  "strict_encoding",
  "wasm-bindgen",
 ]

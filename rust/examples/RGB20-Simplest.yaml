@@ -4,21 +4,22 @@ issuer:
   codexId: nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva
   version: 0
   api: pJXefA
-name: ____
+name: DemoContract
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 
 global:
   - name: ticker
-    verified: ____
+    verified: DEMO
   - name: name
-    verified: ____
+    verified: DemoToken
   - name: precision
-    verified: ____ # centiMilli
+    verified: centiMilli
   - name: issued
-    verified: ____
+    verified: 1000000
 
 owned:
   - name: balance
-    seal: ____
-    data: ____
+    auth: at:2BAk3X5f-tIPDv0nb-H4Njbp_y-ymhr~B9F-XHzQ021e-SHNzAg
+    #seal: b7116550736fbe5d3e234d0141c6bc8d1825f94da78514a3cede5674e9a5eae9:1
+    data: 1000000
