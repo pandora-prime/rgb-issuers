@@ -1,14 +1,29 @@
 import RGBContract: *
 
--- Interface gets compiled into an API for each specific contract
-interface RGB20
+interface FungibleAsset
     pub ticker: Ticker
     pub name: AssetName
     pub precision: Precision
     pub terms?: ContractText
+
+    owned [balance*]: Amount
+
+    op transfer: from [balance+] -> to [balance*]
+        sum.from =?= to.sum !! inflation
+
+    error inflation := "the sum of inputs does not equal to the sum of outputs"
+
+interface InflatableFA: FungibleAsset
+
+
+-- Interface gets compiled into an API for each specific contract
+interface RGB20: FungibleAsset
+
+    -- # Inflation control
     pub [issued+]: Amount
     pub [burned*]: Amount
-    pub supplyLimit: Amount?
+    pub maxInflation: Amount
+    pub [inflationChange*]: I128
 
     read knownIssued: known [issued+] -> Amount := known.sum
     read knownBurned: known [burned*] -> Amount := known.sum ?? 0
@@ -30,8 +45,6 @@ interface RGB20
     read totalCirculating?: issued totalIssued?, burned totalBurned? -> Amount?
         issued? - burned? ?? ~
 
-    owned [balance*]: Amount
-
     owned renominateRight?
     owned [issueRight*]: Amount
 
@@ -45,8 +58,3 @@ interface RGB20
 
     op renominate?: using renominateRight
         -> new renominateRight?, ticker, name, terms?, precision
-
-    op transfer: from [balance+] -> to [balance*]
-        sum.from =?= to.sum !! inflation
-
-    error sumMismatch := "the sum of inputs does not equal to the sum of outputs"

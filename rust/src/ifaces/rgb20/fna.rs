@@ -22,8 +22,7 @@
 
 use hypersonic::{
     Aggregator, Api, CallState, Codex, CodexId, GlobalApi, Identity, Issuer, OwnedApi, RawBuilder,
-    RawConvertor, Semantics, StateArithm, StateBuilder, StateConvertor, StateSelector,
-    SubAggregator,
+    RawConvertor, Semantics, StateArithm, StateBuilder, StateConvertor, SubAggregator,
 };
 use ifaces::CommonTypes;
 use strict_types::SemId;
@@ -119,15 +118,6 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            // TODO:
-            /*vname!("supplyLimit") => GlobalApi {
-                published: true,
-                sem_id: types.get("RGBContract.Amount").optional(),
-                convertor: StateConvertor::TypedEncoder(G_SUPPLY),
-                builder: StateBuilder::TypedEncoder(G_SUPPLY),
-                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
-                raw_builder: RawBuilder::StrictEncode(SemId::unit())
-            },*/
         },
         owned: tiny_bmap! {
             vname!("balance") => OwnedApi {
@@ -140,17 +130,13 @@ pub fn api(codex_id: CodexId) -> Api {
             }
         },
         aggregators: tiny_bmap! {
-            vname!("knownIssued") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
-            vname!("knownBurned") => Aggregator::Take(
-                SubAggregator::Const(types.get("RGBContract.Amount"), tiny_blob![0; 8])
+            vname!("name") => Aggregator::Take(SubAggregator::TheOnly(vname!("name"))),
+            vname!("ticker") => Aggregator::Take(SubAggregator::TheOnly(vname!("ticker"))),
+            vname!("precision") => Aggregator::Take(SubAggregator::TheOnly(vname!("precision"))),
+            vname!("issuedSupply") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
+            vname!("maxSupply") => Aggregator::Take(
+                SubAggregator::Copy(vname!("issuedSupply"))
             ),
-            vname!("knownCirculating") => Aggregator::Take(SubAggregator::Diff(
-                StateSelector::Aggregated(vname!("knownIssued")),
-                StateSelector::Aggregated(vname!("burned"))
-            )),
-            vname!("totalIssued") => Aggregator::Some(SubAggregator::Copy(vname!("knownIssued"))),
-            vname!("totalBurned") => Aggregator::Some(SubAggregator::Copy(vname!("knownBurned"))),
-            vname!("totalCirculating") => Aggregator::Some(SubAggregator::Copy(vname!("knownCirculating"))),
         },
         verifiers: tiny_bmap! {
             vname!("issue") => VERIFIER_GENESIS,

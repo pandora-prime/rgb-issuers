@@ -3,7 +3,7 @@ testnet: true
 issuer:
   codexId: nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva
   version: 0
-  api: pJXefA
+  api: NRIsWA
 name: DemoContract
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"

@@ -52,12 +52,8 @@ and the third letter is a subtype, shown in rows.
 | RGB21    | NDC        | 2025 Jul | Partial | No    |                                                                        |
 | RGB21    | NDE        | 2025 H2  | Partial | No    |                                                                        |
 
-[FNA]: compiled/RGB20-Simplest.issuer
+[FNA]: compiled/RGB20-Simplest-v0-NRIsWA.issuer
 
-[NFU]: compiled/RGB21-UniqueNFT.issuer
+[NFU]: compiled/RGB21-UniqueNFT-v0-rLAuRQ.issuer
 
-[NFC]: compiled/RGB21-NFTCollection.issuer
-
-[NDC]: compiled/RGB21-DivisibleCollection.issuer
-
-[UFA]: compiled/RGB25-UniquelyFungible.issuer
+[UFA]: compiled/RGB25-UniquelyFungible-v0-_5GE0g.issuer
