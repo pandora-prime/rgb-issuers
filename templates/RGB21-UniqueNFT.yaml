@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: WuQZlcwQ-0~G5Lwc-B2Sa7Wb-0D_6~E9-MeHK3ej-qWuE4Lo#random-index-pierre
+issuer: WuQZlcwQ-0~G5Lwc-B2Sa7Wb-0D_6~E9-MeHK3ej-qWuE4Lo#random-index-pierre
 name: ______
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"

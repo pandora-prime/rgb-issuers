@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: WI1YDXvm-Ts3s846-yzyXOcH-df36I~U-lDU09tn-6GL7Udg#oliver-karma-igor
+issuer: WI1YDXvm-Ts3s846-yzyXOcH-df36I~U-lDU09tn-6GL7Udg#oliver-karma-igor
 name: ____
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
