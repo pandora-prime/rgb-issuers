@@ -133,7 +133,7 @@ pub fn api(codex_id: CodexId) -> Api {
             vname!("name") => Aggregator::Take(SubAggregator::TheOnly(vname!("name"))),
             vname!("ticker") => Aggregator::Take(SubAggregator::TheOnly(vname!("ticker"))),
             vname!("precision") => Aggregator::Take(SubAggregator::TheOnly(vname!("precision"))),
-            vname!("issuedSupply") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
+            vname!("supply") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
             vname!("maxSupply") => Aggregator::Take(
                 SubAggregator::Copy(vname!("issuedSupply"))
             ),
