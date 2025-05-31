@@ -63,9 +63,9 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.Details"))
             },
-            vname!("fractions") => GlobalApi {
+            vname!("maxFractions") => GlobalApi {
                 published: true,
-                sem_id: types.get("RGB21.OwnedFraction"),
+                sem_id: types.get("RGB21.TokenFractions"),
                 convertor: StateConvertor::TypedEncoder(G_PRECISION),
                 builder: StateBuilder::TypedEncoder(G_PRECISION),
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
@@ -73,7 +73,7 @@ pub fn api(codex_id: CodexId) -> Api {
             },
             vname!("token") => GlobalApi {
                 published: true,
-                sem_id: types.get("RGB21.TokenIndex"),
+                sem_id: types.get("RGB21.TokenNo"),
                 convertor: StateConvertor::TypedFieldEncoder(G_SUPPLY),
                 builder: StateBuilder::TypedFieldEncoder(G_SUPPLY),
                 raw_convertor: RawConvertor::StrictDecode(types.get("RGB21.NftSpec")),

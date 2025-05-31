@@ -646,7 +646,7 @@ dependencies = [
 [[package]]
 name = "rgb-interfaces"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=v0.12#979e0a77f7fcc41ab6f75db5176cbd578fdf154f"
+source = "git+https://github.com/RGB-WG/rgb-interfaces?branch=v0.12#4dea2271f36130c2a477481fdc75f8def302f82d"
 dependencies = [
  "amplify",
  "bp-consensus",

@@ -116,8 +116,8 @@ pub fn api(codex_id: CodexId) -> Api {
                 sem_id: types.get("RGBContract.Amount"),
                 convertor: StateConvertor::TypedEncoder(G_SUPPLY),
                 builder: StateBuilder::TypedEncoder(G_SUPPLY),
-                raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
-                raw_builder: RawBuilder::StrictEncode(SemId::unit())
+                raw_convertor: RawConvertor::StrictDecode(types.get("RGBContract.ProofOfReserves")),
+                raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.ProofOfReserves"))
             },
         },
         owned: tiny_bmap! {
