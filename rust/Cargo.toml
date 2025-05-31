@@ -45,6 +45,7 @@ std = [] # must-use feature
 
 [patch.crates-io]
 rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "v0.12" }
+ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "feat/opwitness" }
+sonic-api = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
+hypersonic = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }

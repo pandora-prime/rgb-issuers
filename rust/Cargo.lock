@@ -429,7 +429,7 @@ dependencies = [
 [[package]]
 name = "hypersonic"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
+source = "git+https://github.com/AluVM/sonic?branch=feat%2Fopwitness#28586856f22030bdd6076442258fa860e3b1930a"
 dependencies = [
  "aluvm",
  "amplify",
@@ -806,7 +806,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "sonic-api"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
+source = "git+https://github.com/AluVM/sonic?branch=feat%2Fopwitness#28586856f22030bdd6076442258fa860e3b1930a"
 dependencies = [
  "aluvm",
  "amplify",
@@ -829,7 +829,7 @@ dependencies = [
 [[package]]
 name = "sonic-callreq"
 version = "0.12.0-rc.1"
-source = "git+https://github.com/AluVM/sonic?branch=v0.12#34070cdf26fa8adcfb93033e1270f680323f27c8"
+source = "git+https://github.com/AluVM/sonic?branch=feat%2Fopwitness#28586856f22030bdd6076442258fa860e3b1930a"
 dependencies = [
  "amplify",
  "baid64",
@@ -1002,8 +1002,7 @@ checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
 [[package]]
 name = "ultrasonic"
 version = "0.12.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5245198eb653a287955cd0ddaf7b7918373375592a28c189bd54a5345ce05377"
+source = "git+https://github.com/AluVM/ultrasonic?branch=feat%2Fopwitness#342c6746635af97bdd4843283faa729264a88811"
 dependencies = [
  "amplify",
  "baid64",

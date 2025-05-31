@@ -173,7 +173,7 @@ pub fn unique() -> CompiledLib {
 mod tests {
     use super::*;
     use crate::{FN_RGB21_ISSUE, G_DETAILS, G_NAME, G_PRECISION, G_SUPPLY};
-    use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
+    use hypersonic::{AuthToken, Input, Instr, StateCell, StateData, StateValue, VmContext};
     use strict_types::StrictDumb;
     use zkaluvm::alu::{CoreConfig, Lib, LibId, Vm};
     use zkaluvm::{GfaConfig, FIELD_ORDER_SECP};
@@ -188,17 +188,23 @@ mod tests {
 
     macro_rules! unique_token_in {
         () => {
-            StateValue::Triple {
-                first: O_AMOUNT.into(),
-                second: TOKEN_ID.into(),
-                third: TOKEN_FRACTIONS.into(),
-            }
+            (
+                Input {
+                    addr: strict_dumb!(),
+                    witness: StateValue::None,
+                },
+                unique_token_out!(),
+            )
         };
     }
     macro_rules! unique_token_out {
         () => {
             StateCell {
-                data: unique_token_in!(),
+                data: StateValue::Triple {
+                    first: O_AMOUNT.into(),
+                    second: TOKEN_ID.into(),
+                    third: TOKEN_FRACTIONS.into(),
+                },
                 auth: AuthToken::strict_dumb(),
                 lock: None,
             }
@@ -233,6 +239,7 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -248,6 +255,7 @@ mod tests {
     #[test]
     fn genesis_missing_globals() {
         let mut context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
@@ -289,6 +297,7 @@ mod tests {
     #[test]
     fn genesis_missing_owned() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -309,6 +318,7 @@ mod tests {
     #[test]
     fn genesis_supply_mismatch() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -338,6 +348,7 @@ mod tests {
     fn genesis_nonunique() {
         const SUPPLY: u64 = 100_u64;
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -366,6 +377,7 @@ mod tests {
     #[test]
     fn genesis_correct() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
@@ -386,6 +398,7 @@ mod tests {
     #[test]
     fn transfer_contains_globals() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
@@ -398,6 +411,7 @@ mod tests {
         assert!(!res);
 
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[StateValue::None],
             destructible_output: &[unique_token_out!()],
@@ -413,6 +427,7 @@ mod tests {
     #[test]
     fn transfer_no_input() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
@@ -428,6 +443,7 @@ mod tests {
     #[test]
     fn transfer_no_output() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[],
             destructible_output: &[],
@@ -442,12 +458,15 @@ mod tests {
 
     #[test]
     fn transfer_wrong_in_id() {
+        let mut inp = unique_token_in!();
+        inp.1.data = StateValue::Triple {
+            first: O_AMOUNT.into(),
+            second: (TOKEN_ID + 1).into(),
+            third: TOKEN_FRACTIONS.into(),
+        };
         let context = VmContext {
-            destructible_input: &[StateValue::Triple {
-                first: O_AMOUNT.into(),
-                second: (TOKEN_ID + 1).into(),
-                third: TOKEN_FRACTIONS.into(),
-            }],
+            witness: none!(),
+            destructible_input: &[inp],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
             immutable_output: &[],
@@ -461,12 +480,15 @@ mod tests {
 
     #[test]
     fn transfer_wrong_in_fractons() {
+        let mut inp = unique_token_in!();
+        inp.1.data = StateValue::Triple {
+            first: O_AMOUNT.into(),
+            second: TOKEN_ID.into(),
+            third: (TOKEN_FRACTIONS + 1).into(),
+        };
         let context = VmContext {
-            destructible_input: &[StateValue::Triple {
-                first: O_AMOUNT.into(),
-                second: TOKEN_ID.into(),
-                third: (TOKEN_FRACTIONS + 1).into(),
-            }],
+            witness: none!(),
+            destructible_input: &[inp],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],
             immutable_output: &[],
@@ -487,6 +509,7 @@ mod tests {
             third: TOKEN_FRACTIONS.into(),
         };
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[],
             destructible_output: &[token],
@@ -508,6 +531,7 @@ mod tests {
             third: (TOKEN_FRACTIONS + 1).into(),
         };
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[],
             destructible_output: &[token],
@@ -529,7 +553,8 @@ mod tests {
             third: (TOKEN_FRACTIONS + 1).into(),
         };
         let context = VmContext {
-            destructible_input: &[token.data],
+            witness: none!(),
+            destructible_input: &[(Input::strict_dumb(), token)],
             immutable_input: &[],
             destructible_output: &[token],
             immutable_output: &[],
@@ -544,6 +569,7 @@ mod tests {
     #[test]
     fn transfer_correct() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[unique_token_in!()],
             immutable_input: &[],
             destructible_output: &[unique_token_out!()],

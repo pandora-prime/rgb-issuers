@@ -67,6 +67,7 @@ pub fn codex() -> Codex {
         name: tiny_s!("Fungible Non-inflatable Asset"),
         developer: Identity::from(PANDORA),
         version: default!(),
+        features: none!(),
         timestamp: 1732529307,
         field_order: FIELD_ORDER_SECP,
         input_config: CoreConfig::default(),
@@ -133,7 +134,7 @@ pub fn api(codex_id: CodexId) -> Api {
             vname!("name") => Aggregator::Take(SubAggregator::TheOnly(vname!("name"))),
             vname!("ticker") => Aggregator::Take(SubAggregator::TheOnly(vname!("ticker"))),
             vname!("precision") => Aggregator::Take(SubAggregator::TheOnly(vname!("precision"))),
-            vname!("supply") => Aggregator::Take(SubAggregator::SumVDefault(vname!("issued"))),
+            vname!("supply") => Aggregator::Take(SubAggregator::SumOrDefault(vname!("issued"))),
             vname!("maxSupply") => Aggregator::Take(
                 SubAggregator::Copy(vname!("issuedSupply"))
             ),

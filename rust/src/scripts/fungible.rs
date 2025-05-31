@@ -216,7 +216,7 @@ pub fn fungible() -> CompiledLib {
 #[cfg(test)]
 mod tests {
     use amplify::num::u256;
-    use hypersonic::{AuthToken, Instr, StateCell, StateData, StateValue, VmContext};
+    use hypersonic::{AuthToken, Input, Instr, StateCell, StateData, StateValue, VmContext};
     use strict_types::StrictDumb;
     use zkaluvm::alu::{CoreConfig, CoreExt, Lib, LibId, Supercore, Vm};
     use zkaluvm::{GfaConfig, GfaCore, RegE, FIELD_ORDER_SECP};
@@ -275,9 +275,19 @@ mod tests {
             let (lib, mut vm, resolver) = harness();
             let input = input
                 .into_iter()
-                .map(|val| StateValue::new(O_AMOUNT, *val))
+                .map(|val| {
+                    (
+                        Input::strict_dumb(),
+                        StateCell {
+                            data: StateValue::new(O_AMOUNT, *val),
+                            auth: strict_dumb!(),
+                            lock: None,
+                        },
+                    )
+                })
                 .collect::<Vec<_>>();
             let context = VmContext {
+                witness: none!(),
                 destructible_input: input.as_slice(),
                 immutable_input: &[],
                 destructible_output: &[],
@@ -303,6 +313,7 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let context = VmContext {
+                witness: none!(),
                 destructible_input: &[],
                 immutable_input: &[],
                 destructible_output: output.as_slice(),
@@ -322,9 +333,19 @@ mod tests {
             let sum = input.iter().sum::<u64>();
             let input = input
                 .into_iter()
-                .map(|val| StateValue::new(O_AMOUNT, *val))
+                .map(|val| {
+                    (
+                        Input::strict_dumb(),
+                        StateCell {
+                            data: StateValue::new(O_AMOUNT, *val),
+                            auth: strict_dumb!(),
+                            lock: None,
+                        },
+                    )
+                })
                 .collect::<Vec<_>>();
             let context = VmContext {
+                witness: none!(),
                 destructible_input: input.as_slice(),
                 immutable_input: &[],
                 destructible_output: &[],
@@ -355,6 +376,7 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
             let context = VmContext {
+                witness: none!(),
                 destructible_input: &[],
                 immutable_input: &[],
                 destructible_output: output.as_slice(),
@@ -372,6 +394,7 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -387,6 +410,7 @@ mod tests {
     #[test]
     fn genesis_missing_globals() {
         let mut context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -432,6 +456,7 @@ mod tests {
     #[test]
     fn genesis_missing_owned() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -452,6 +477,7 @@ mod tests {
     #[test]
     fn genesis_supply_mismatch() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -476,6 +502,7 @@ mod tests {
     #[test]
     fn genesis_correct() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -500,7 +527,16 @@ mod tests {
     fn transfer_harness(inp: &[&[u64]], out: &[&[u64]], should_success: bool) {
         let inputs = inp.into_iter().map(|vals| {
             vals.into_iter()
-                .map(|val| StateValue::new(O_AMOUNT, *val))
+                .map(|val| {
+                    (
+                        Input::strict_dumb(),
+                        StateCell {
+                            data: StateValue::new(O_AMOUNT, *val),
+                            auth: strict_dumb!(),
+                            lock: None,
+                        },
+                    )
+                })
                 .collect::<Vec<_>>()
         });
         let lock = None;
@@ -522,6 +558,7 @@ mod tests {
         }) {
             let (lib, mut vm, resolver) = harness();
             let context = VmContext {
+                witness: none!(),
                 destructible_input: input.as_slice(),
                 immutable_input: &[],
                 destructible_output: output.as_slice(),

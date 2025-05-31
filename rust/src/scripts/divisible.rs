@@ -271,6 +271,7 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -287,6 +288,7 @@ mod tests {
     fn genesis_missing_globals() {
         const SUPPLY: u64 = 1000_u64;
         let mut context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -332,6 +334,7 @@ mod tests {
     #[test]
     fn genesis_missing_owned() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -352,6 +355,7 @@ mod tests {
     #[test]
     fn genesis_supply_mismatch() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -379,6 +383,7 @@ mod tests {
         const TOKEN_ID: u64 = 0;
         const SUPPLY: u64 = 1000_u64;
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {

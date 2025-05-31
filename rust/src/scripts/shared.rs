@@ -185,6 +185,7 @@ mod tests {
     #[test]
     fn genesis_empty() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],
@@ -200,6 +201,7 @@ mod tests {
     #[test]
     fn genesis_missing_globals() {
         let mut context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -234,6 +236,7 @@ mod tests {
     #[test]
     fn genesis_wrong_order() {
         let mut context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[StateCell {
@@ -278,6 +281,7 @@ mod tests {
     #[test]
     fn genesis_correct() {
         let context = VmContext {
+            witness: none!(),
             destructible_input: &[],
             immutable_input: &[],
             destructible_output: &[],

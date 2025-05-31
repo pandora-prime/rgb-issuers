@@ -53,6 +53,7 @@ fn codex() -> Codex {
         name: tiny_s!("Non-Fungible Unique Asset"),
         developer: Identity::from(PANDORA),
         version: default!(),
+        features: none!(),
         timestamp: 1732529307,
         field_order: FIELD_ORDER_SECP,
         input_config: CoreConfig::default(),
