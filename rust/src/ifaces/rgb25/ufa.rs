@@ -69,7 +69,10 @@ fn codex() -> Codex {
         features: none!(),
         timestamp: 1732529307,
         field_order: FIELD_ORDER_SECP,
-        input_config: CoreConfig::default(),
+        input_config: CoreConfig {
+            halt: true,
+            complexity_lim: Some(0),
+        },
         verification_config: CoreConfig::default(),
         verifiers: tiny_bmap! {
             VERIFIER_GENESIS => lib.routine(FN_FUNGIBLE_ISSUE),
