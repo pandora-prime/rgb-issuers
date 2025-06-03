@@ -1,33 +1,32 @@
 consensus: bitcoin
 testnet: true
 issuer:
-  codexId: WuQZlcwQ-0~G5Lwc-B2Sa7Wb-0D_6~E9-MeHK3ej-qWuE4Lo#random-index-pierre
+  codexId: 1T9uRsVB-_A8owmV-mv9SMiF-vgFFjN2-kxd9AZz-lpU8K1A
   version: 0
-  api: rLAuRQ
+  api: FtU80Q
 name: ______
 method: issue
-timestamp: "2024-12-18T10:32:00-02:00"
+timestamp: "2025-06-03T12:00:00-02:00"
 
 global:
-  - name: details
-    verified: # must stay empty
-    unverified: ______ # actual details go here
+  - name: ticker
+    verified: ____
   - name: name
     verified: ______
-  - name: fractions
+  - name: maxFractions
     verified: 1
   - name: token
     verified: 1
     unverified:
-      name: Default
+      name: ______
       embedded:
         mime:
-          type: text
-          subtype: plain
+          type: image
+          subtype: png # you can change it to your actual image type
           charset:
-        data: ______
-      external:
-      reserves:
+        data: ___ # paste hex-encoded image data
+      external: # you can leave this empty
+      reserves: # you can leave this empty
 
 owned:
   - name: balance

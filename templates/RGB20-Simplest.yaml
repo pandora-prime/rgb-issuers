@@ -1,12 +1,12 @@
 consensus: bitcoin
 testnet: true
 issuer:
-  codexId: y6L7YTlM-5_v4LWy-oQsj5hV-I2imvxD-zRu0JBo-yaguhrY
+  codexId: 7C15w3W1-L0T~zXw-Aeh5~kV-Zquz729-HXQFKQW-_5lX9O8
   version: 0
-  api: rLosfg
+  api: AYkSrg
 name: ____
 method: issue
-timestamp: "2024-12-18T10:32:00-02:00"
+timestamp: "2025-06-01T22:00:00-02:00"
 
 global:
   - name: ticker

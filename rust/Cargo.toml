@@ -1,6 +1,6 @@
 [package]
 name = "issuers"
-version = "0.12.0-rc.1"
+version = "0.12.0-rc.2"
 edition = "2021"
 publish = false
 
@@ -29,23 +29,16 @@ path = "src/bin/rgb25/ufa.rs"
 [dependencies]
 amplify = "~4.9.0"
 strict_types = "~2.9.0"
-zk-aluvm = { version = "0.12.0-rc.1", features = ["std"] }
-hypersonic = { version = "0.12.0-rc.1", features = ["std"] }
-rgb-interfaces = "0.12.0-rc.1"
+zk-aluvm = { version = "0.12.0-rc.2", features = ["std"] }
+hypersonic = { version = "0.12.0-rc.2", features = ["std"] }
+rgb-interfaces = "0.12.0-rc.2"
 
 [dev-dependencies]
-zk-aluvm = { version = "0.12.0-rc.1", features = ["std", "log"] }
-hypersonic = { version = "0.12.0-rc.1", features = ["std", "serde"] }
+zk-aluvm = { version = "0.12.0-rc.2", features = ["std", "log"] }
+hypersonic = { version = "0.12.0-rc.2", features = ["std", "serde"] }
 serde_yaml = "0.9.34"
 
 [features]
 default = ["std"]
 all = ["std"]
 std = [] # must-use feature
-
-[patch.crates-io]
-rgb-interfaces = { git = "https://github.com/RGB-WG/rgb-interfaces", branch = "v0.12" }
-ultrasonic = { git = "https://github.com/AluVM/ultrasonic", branch = "feat/opwitness" }
-sonic-api = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-sonic-callreq = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }
-hypersonic = { git = "https://github.com/AluVM/sonic", branch = "feat/opwitness" }

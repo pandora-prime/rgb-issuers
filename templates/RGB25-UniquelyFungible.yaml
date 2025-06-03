@@ -1,12 +1,12 @@
 consensus: bitcoin
 testnet: true
 issuer:
-  codexId: WI1YDXvm-Ts3s846-yzyXOcH-df36I~U-lDU09tn-6GL7Udg#oliver-karma-igor
+  codexId: mqmGvodN-WxpxyRb-RsGHiTQ-jDoRvMy-ClhrQGx-FMa5Cpw
   version: 0
-  api: _5GE0g
+  api: aiRB3w
 name: ____
 method: issue
-timestamp: "2024-12-18T10:32:00-02:00"
+timestamp: "2025-06-03T12:00:00-02:00"
 
 global:
   - name: details

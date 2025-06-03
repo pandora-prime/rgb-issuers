@@ -38,22 +38,22 @@ and the third letter is a subtype, shown in rows.
 
 ## Issuer readiness
 
-| Standard | Short Name | ETA      | Tests   | Audit | Codex Id                                                               |
-|----------|------------|----------|---------|-------|------------------------------------------------------------------------|
-| RGB20    | [FNA]      | Ready    | Full    | No    | `nmThRWDr-0hOJgJt-OFVCZTA-XX8aOWj-bkqWzK7-_jAtdhQ#justice-planet-viva` |
-| RGB20    | FIA        | 2025 Jul | Partial | No    |                                                                        |
-| RGB20    | FBA        | 2025 H2  | Partial | No    |                                                                        |
-| RGB20    | FRA        | 2025     | Partial | No    |                                                                        |
-| RGB25    | [UFA]      | Ready    | Full    | No    | `WuQZlcwQ-0~G5Lwc-B2Sa7Wb-0D_6~E9-MeHK3ej-qWuE4Lo#random-index-pierre` |
-| RGB21    | [NFU]      | Ready    | Full    | No    | `WI1YDXvm-Ts3s846-yzyXOcH-df36I~U-lDU09tn-6GL7Udg#oliver-karma-igor`   |
-| RGB21    | NFC        | 2025 Jul | Partial | No    |                                                                        |
-| RGB21    | NFE        | 2025 H2  | Partial | No    |                                                                        |
-| RGB21    | NDU        | 2025 Jul | Partial | No    |                                                                        |
-| RGB21    | NDC        | 2025 Jul | Partial | No    |                                                                        |
-| RGB21    | NDE        | 2025 H2  | Partial | No    |                                                                        |
+| Standard | Short Name | ETA      | Tests   | Audit | Codex Id                                           |
+|----------|------------|----------|---------|-------|----------------------------------------------------|
+| RGB20    | [FNA]      | Ready    | Full    | No    | `7C15w3W1-L0T~zXw-Aeh5~kV-Zquz729-HXQFKQW-_5lX9O8` |
+| RGB20    | FIA        | 2025 Jul | Partial | No    |                                                    |
+| RGB20    | FBA        | 2025 H2  | Partial | No    |                                                    |
+| RGB20    | FRA        | 2025     | Partial | No    |                                                    |
+| RGB25    | [UFA]      | 2025 Jun | Full    | No    | `mqmGvodN-WxpxyRb-RsGHiTQ-jDoRvMy-ClhrQGx-FMa5Cpw` |
+| RGB21    | [NFU]      | 2025 Jun | Full    | No    | `1T9uRsVB-_A8owmV-mv9SMiF-vgFFjN2-kxd9AZz-lpU8K1A` |
+| RGB21    | NFC        | 2025 Jul | Partial | No    |                                                    |
+| RGB21    | NFE        | 2025 H2  | Partial | No    |                                                    |
+| RGB21    | NDU        | 2025 Jul | Partial | No    |                                                    |
+| RGB21    | NDC        | 2025 Jul | Partial | No    |                                                    |
+| RGB21    | NDE        | 2025 H2  | Partial | No    |                                                    |
 
-[FNA]: compiled/RGB20-Simplest-v0-NRIsWA.issuer
+[FNA]: compiled/RGB20-Simplest-v0-AYkSrg.issuer
 
-[NFU]: compiled/RGB21-UniqueNFT-v0-rLAuRQ.issuer
+[NFU]: compiled/RGB21-UniqueNFT-v0-FtU80Q.issuer
 
-[UFA]: compiled/RGB25-UniquelyFungible-v0-_5GE0g.issuer
+[UFA]: compiled/RGB25-UniquelyFungible-v0-aiRB3w.issuer

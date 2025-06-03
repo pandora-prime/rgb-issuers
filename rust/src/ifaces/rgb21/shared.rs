@@ -21,8 +21,8 @@
 // the License.
 
 use hypersonic::{
-    Api, CallState, CodexId, GlobalApi, OwnedApi, RawBuilder, RawConvertor, StateArithm,
-    StateBuilder, StateConvertor,
+    Aggregator, Api, CallState, CodexId, GlobalApi, OwnedApi, RawBuilder, RawConvertor,
+    StateArithm, StateBuilder, StateConvertor, SubAggregator,
 };
 use ifaces::Rgb21Types;
 use strict_types::SemId;
@@ -31,8 +31,8 @@ use crate::{
     ERRNO_FRACTIONALITY, ERRNO_INVALID_PRECISION, ERRNO_INVALID_TOKEN_ID, ERRNO_NO_INPUT,
     ERRNO_NO_NAME, ERRNO_NO_OUTPUT, ERRNO_NO_PRECISION, ERRNO_NO_TICKER, ERRNO_NO_TOKEN_ID,
     ERRNO_TOKEN_EXCESS, ERRNO_TOKEN_EXCESS_IN, ERRNO_TOKEN_EXCESS_OUT, ERRNO_UNEXPECTED_GLOBAL_IN,
-    ERRNO_UNEXPECTED_GLOBAL_OUT, ERRNO_UNEXPECTED_OWNED_IN, G_DETAILS, G_NAME, G_PRECISION,
-    G_SUPPLY, O_AMOUNT,
+    ERRNO_UNEXPECTED_GLOBAL_OUT, ERRNO_UNEXPECTED_OWNED_IN, G_NAME, G_PRECISION, G_SUPPLY,
+    G_TICKER, O_AMOUNT,
 };
 
 pub const VERIFIER_GENESIS: u16 = 0;
@@ -55,13 +55,13 @@ pub fn api(codex_id: CodexId) -> Api {
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
                 raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
-            vname!("details") => GlobalApi {
+            vname!("ticker") => GlobalApi {
                 published: true,
-                sem_id: SemId::unit(),
-                convertor: StateConvertor::TypedEncoder(G_DETAILS),
-                builder: StateBuilder::TypedEncoder(G_DETAILS),
+                sem_id: types.get("RGBContract.Ticker"),
+                convertor: StateConvertor::TypedEncoder(G_TICKER),
+                builder: StateBuilder::TypedEncoder(G_TICKER),
                 raw_convertor: RawConvertor::StrictDecode(SemId::unit()),
-                raw_builder: RawBuilder::StrictEncode(types.get("RGBContract.Details"))
+                raw_builder: RawBuilder::StrictEncode(SemId::unit())
             },
             vname!("maxFractions") => GlobalApi {
                 published: true,
@@ -82,7 +82,7 @@ pub fn api(codex_id: CodexId) -> Api {
         },
         owned: tiny_bmap! {
             vname!("balance") => OwnedApi {
-                sem_id: types.get("RGB21.Nft"),
+                sem_id: types.get("RGB21.OwnedNft"),
                 arithmetics: StateArithm::Fungible,
                 convertor: StateConvertor::TypedFieldEncoder(O_AMOUNT),
                 builder: StateBuilder::TypedFieldEncoder(O_AMOUNT),
@@ -90,7 +90,12 @@ pub fn api(codex_id: CodexId) -> Api {
                 witness_builder: StateBuilder::Unit
             }
         },
-        aggregators: empty!(),
+        aggregators: tiny_bmap! {
+            vname!("name") => Aggregator::Take(SubAggregator::TheOnly(vname!("name"))),
+            vname!("ticker") => Aggregator::Take(SubAggregator::TheOnly(vname!("ticker"))),
+            vname!("count") => Aggregator::Take(SubAggregator::CountUnique(vname!("token"))),
+            vname!("tokens") => Aggregator::Take(SubAggregator::MapV2U(vname!("token"))),
+        },
         verifiers: tiny_bmap! {
             vname!("issue") => VERIFIER_GENESIS,
             vname!("transfer") => VERIFIER_TRANSFER,
